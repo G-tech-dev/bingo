@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FaEnvelope, FaLock, FaVideo } from 'react-icons/fa';
+import { FaEnvelope, FaHandsHelping, FaLock } from 'react-icons/fa';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -27,14 +27,14 @@ const Login = () => {
         <div>
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center">
-              <FaVideo className="text-3xl text-white" aria-hidden="true" />
+              <FaHandsHelping className="text-3xl text-white" aria-hidden="true" />
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-dark-900">
-            Welcome Back!
+            Welcome back to Compassion
           </h2>
           <p className="mt-2 text-center text-sm text-dark-600">
-            Sign in to continue watching and earning
+            Sign in to discover organizations and follow their work with children.
           </p>
         </div>
 
@@ -95,13 +95,13 @@ const Login = () => {
                 Signing in...
               </span>
             ) : (
-              'Sign In'
+              'Sign in'
             )}
           </button>
 
           <div className="text-center">
             <Link to="/register" className="text-sm text-primary-600 hover:text-primary-500 font-medium">
-              Don't have an account? Sign up now
+              New to Compassion? Create an account
             </Link>
           </div>
         </form>

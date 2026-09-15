@@ -42,7 +42,7 @@ const Navbar = () => {
     return (
       <header className="border-b border-dark-200 bg-white">
         <div className="container-custom flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><FaVideo /></span><span className="text-xl font-bold text-primary-700">Videa</span></Link>
+          <Link to="/" className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><FaVideo /></span><span className="text-xl font-bold text-primary-700">Umushinga</span></Link>
           <div className="flex items-center gap-3 sm:gap-4"><Link to="/login" className="text-sm font-medium text-dark-600 hover:text-primary-600">Sign in</Link><Link to="/register" className="btn-primary px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm">Get started</Link></div>
         </div>
       </header>
@@ -60,7 +60,7 @@ const Navbar = () => {
   const menu = (
     <div className="flex h-full flex-col">
       <div className="flex h-20 items-center justify-between border-b border-dark-700 px-6">
-        <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white"><FaVideo /></span><span className="text-xl font-bold text-white">Videa</span></Link>
+        <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white"><FaVideo /></span><span className="text-xl font-bold text-white">Umushinga</span></Link>
         <button type="button" onClick={() => setIsMenuOpen(false)} className="text-dark-300 hover:text-white md:hidden" aria-label="Close menu"><FaTimes /></button>
       </div>
       <div className="flex-1 space-y-1 px-4 py-6">
@@ -80,7 +80,7 @@ const Navbar = () => {
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 bg-dark-900 md:block">{menu}</aside>
-      <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-dark-200 bg-white px-4 md:hidden"><button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 text-dark-700" aria-label="Open menu"><FaBars size={20} /></button><Link to="/" className="text-lg font-bold text-primary-700">Videa</Link><Link to="/wallet" className="min-w-0 truncate text-right text-xs font-semibold text-green-700">RWF {Number(walletBalance).toFixed(2)}</Link></div>
+      <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-dark-200 bg-white px-4 md:hidden"><button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 text-dark-700" aria-label="Open menu"><FaBars size={20} /></button><Link to="/" className="text-lg font-bold text-primary-700">Umushinga</Link><Link to="/wallet" className="min-w-0 truncate text-right text-xs font-semibold text-green-700">RWF {Number(walletBalance).toFixed(2)}</Link></div>
       {isMenuOpen && <><button type="button" aria-label="Close menu overlay" onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40 bg-dark-900/60 md:hidden" /><aside className="fixed inset-y-0 left-0 z-50 w-72 bg-dark-900 md:hidden">{menu}</aside></>}
     </>
   );

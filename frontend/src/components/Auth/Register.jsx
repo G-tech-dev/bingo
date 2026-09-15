@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FaUser, FaEnvelope, FaLock, FaUserTag } from 'react-icons/fa';
+import { FaEnvelope, FaHandsHelping, FaLock, FaUser, FaUserTag } from 'react-icons/fa';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
     role: 'viewer',
@@ -39,43 +39,43 @@ const Register = () => {
         <div>
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center">
-              <span className="text-3xl">🚀</span>
+              <FaHandsHelping className="text-3xl text-white" />
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-dark-900">
-            Create Account
+            Join Compassion
           </h2>
           <p className="mt-2 text-center text-sm text-dark-600">
-            Help your organization reach people who care.
+            Create a place for your organization or community to be found.
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-dark-700 mb-1">
-                Username
+              <label htmlFor="name" className="block text-sm font-medium text-dark-700 mb-1">
+                Your name or organization name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaUser className="text-dark-400" />
                 </div>
                 <input
-                  id="username"
-                  name="username"
+                  id="name"
+                  name="name"
                   type="text"
                   required
-                  value={formData.username}
+                  value={formData.name}
                   onChange={handleChange}
                   className="input-field pl-10"
-                  placeholder="Choose a username"
+                  placeholder="Example: Hope for Children"
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-dark-700 mb-1">
-                Email Address
+                Email address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -118,7 +118,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-dark-700 mb-1">
-                I want to
+                I am here to
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -131,9 +131,9 @@ const Register = () => {
                   onChange={handleChange}
                   className="input-field pl-10 appearance-none"
                 >
-                  <option value="viewer">Watch and Earn</option>
-                  <option value="creator">Organization publisher</option>
-                  <option value="both">Publisher and supporter</option>
+                  <option value="viewer">Find organizations and support their work</option>
+                  <option value="creator">Publish my organization’s work</option>
+                  <option value="both">Publish and support organizations</option>
                 </select>
               </div>
             </div>
@@ -154,7 +154,7 @@ const Register = () => {
                 Creating account...
               </span>
             ) : (
-              'Create Account'
+              'Create account'
             )}
           </button>
 

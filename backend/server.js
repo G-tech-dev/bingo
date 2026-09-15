@@ -55,6 +55,7 @@ const mediaSchema = new mongoose.Schema({
 	size: Number,
 	storagePath: { type: String, required: true },
 	url: { type: String, required: true },
+	videoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Video' },
 	title: { type: String, default: '' },
 	description: { type: String, default: '' },
 }, { timestamps: true });
@@ -80,11 +81,15 @@ function initializeFirebase() {
 		console.warn('Firebase Storage is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_STORAGE_BUCKET to enable uploads.');
 		return;
 	}
-	admin.initializeApp({
-		credential: admin.credential.cert(JSON.parse(serviceAccount)),
-		storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-	});
-	bucket = admin.storage().bucket();
+	try {
+		admin.initializeApp({
+			credential: admin.credential.cert(JSON.parse(serviceAccount)),
+			storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+		});
+		bucket = admin.storage().bucket();
+	} catch (error) {
+		console.error('Firebase initialization failed:', error.message);
+	}
 }
 
 function signUser(user) {
@@ -160,6 +165,7 @@ app.post('/api/media/upload', auth, databaseRequired, upload.single('file'), asy
 		if (type === 'video') {
 			video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: url, videoTitle: req.body.title || req.file.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
 			media.videoId = video._id;
+			await media.save();
 		}
 		return res.status(201).json({ media, video });
 	} catch (error) { return next(error); }
