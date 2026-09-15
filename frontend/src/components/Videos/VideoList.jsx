@@ -83,7 +83,6 @@ const VideoList = () => {
   const sortOptions = [
     { value: 'createdAt', label: 'Latest' },
     { value: 'views', label: 'Most Viewed' },
-    { value: 'earnings', label: 'Top Earning' },
   ];
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -181,13 +180,6 @@ const VideoList = () => {
                   </div>
                 )}
 
-                {/* Earnings Badge */}
-                {video.isMonetized && (
-                  <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-1 text-xs font-semibold text-white shadow-sm">
-                    <FaFire className="text-xs" />
-                    Earn
-                  </div>
-                )}
               </div>
               </Link>
 
@@ -226,12 +218,6 @@ const VideoList = () => {
                   </span>
                 </div>
 
-                {/* Earnings Indicator */}
-                {video.earnings > 0 && (
-                  <div className="mt-2 text-xs text-green-600 font-medium">
-                    <FaMoneyBillWave className="mr-1 inline" /> RWF {video.earnings.toFixed(2)} earned
-                  </div>
-                )}
               </div>
             </article>
           ))}

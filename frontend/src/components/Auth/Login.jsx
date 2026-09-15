@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FaEnvelope, FaHandsHelping, FaLock } from 'react-icons/fa';
 
@@ -99,11 +99,7 @@ const Login = () => {
             )}
           </button>
 
-          <div className="text-center">
-            <Link to="/register" className="text-sm text-primary-600 hover:text-primary-500 font-medium">
-              New to Compassion? Create an account
-            </Link>
-          </div>
+          <p className="text-center text-sm text-dark-500">Accounts are created by the system administrator.</p>
         </form>
       </div>
     </div>

@@ -45,10 +45,15 @@ api.interceptors.response.use(
 
 // Auth Services
 export const authService = {
-  register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   activatePremium: (plan) => api.post('/auth/premium', { plan }),
+};
+
+export const adminService = {
+  getUsers: () => api.get('/admin/users'),
+  createUser: (data) => api.post('/admin/users', data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };
 
 // Video Services

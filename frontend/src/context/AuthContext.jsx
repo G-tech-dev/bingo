@@ -54,22 +54,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await authService.register(userData);
-      const { token, user } = response.data;
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      
-      toast.success('Account created successfully! 🎉');
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
-    }
-  };
-
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
@@ -97,11 +81,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     token,
     login,
-    register,
     activatePremium,
     logout,
     isAuthenticated: !!user,
     isCreator: user?.role === 'creator' || user?.role === 'both',
+    isAdmin: user?.role === 'admin',
     isPremiumCreator,
   };
 

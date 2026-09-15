@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema({
 	name: { type: String, required: true, trim: true },
 	email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 	password: { type: String, required: true, select: false },
+	role: { type: String, enum: ['admin', 'publisher', 'supporter'], default: 'supporter' },
 	isPremium: { type: Boolean, default: false },
 	premiumPlan: { type: String, default: null },
 	wallet: { balance: { type: Number, default: 0 }, currency: { type: String, default: 'RWF' } },
@@ -97,7 +98,7 @@ function signUser(user) {
 }
 
 function publicUser(user) {
-	return { id: user._id, name: user.name, email: user.email, isPremium: user.isPremium, premiumPlan: user.premiumPlan, wallet: user.wallet };
+	return { id: user._id, name: user.name, email: user.email, role: user.role, isPremium: user.isPremium, premiumPlan: user.premiumPlan, wallet: user.wallet };
 }
 
 function auth(req, res, next) {
@@ -116,6 +117,11 @@ function databaseRequired(req, res, next) {
 	return next();
 }
 
+function adminOnly(req, res, next) {
+	if (req.user.role !== 'admin') return res.status(403).json({ message: 'Administrator access required' });
+	return next();
+}
+
 const upload = multer({
 	storage: multer.memoryStorage(),
 	limits: { fileSize: 500 * 1024 * 1024 },
@@ -124,22 +130,11 @@ const upload = multer({
 
 app.get('/api/health', (req, res) => res.json({ ok: true, database: mongoose.connection.readyState === 1, firebaseStorage: Boolean(bucket) }));
 
-app.post('/api/auth/register', databaseRequired, async (req, res, next) => {
-	try {
-		const { name, email, password } = req.body;
-		if (!name || !email || !password || password.length < 6) return res.status(400).json({ message: 'Name, email and a password of at least 6 characters are required' });
-		const normalizedEmail = email.toLowerCase().trim();
-		if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'Email is already registered' });
-		const user = await User.create({ name, email: normalizedEmail, password: await bcrypt.hash(password, 12) });
-		return res.status(201).json({ user: publicUser(user), token: signUser(user) });
-	} catch (error) { return next(error); }
-});
-
 app.post('/api/auth/login', databaseRequired, async (req, res, next) => {
 	try {
 		const user = await User.findOne({ email: req.body.email?.toLowerCase().trim() }).select('+password');
 		if (!user || !(await bcrypt.compare(req.body.password || '', user.password))) return res.status(401).json({ message: 'Invalid email or password' });
-		return res.json({ user: publicUser(user), token: signUser(user) });
+		return res.json({ user: publicUser(user), token: jwt.sign({ id: user._id.toString(), email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' }) });
 	} catch (error) { return next(error); }
 });
 
@@ -149,6 +144,24 @@ app.get('/api/auth/me', auth, databaseRequired, async (req, res, next) => {
 
 app.post('/api/auth/premium', auth, databaseRequired, async (req, res, next) => {
 	try { const user = await User.findByIdAndUpdate(req.user.id, { isPremium: true, premiumPlan: req.body.plan || 'basic' }, { new: true }); return res.json({ user: publicUser(user) }); } catch (error) { return next(error); }
+});
+
+app.get('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try { return res.json({ users: await User.find().select('name email role createdAt isPremium').sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
+});
+app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const { name, email, password, role = 'supporter' } = req.body;
+		if (!name || !email || !password || password.length < 6) return res.status(400).json({ message: 'Name, email and a password of at least 6 characters are required' });
+		if (!['publisher', 'supporter'].includes(role)) return res.status(400).json({ message: 'User role must be publisher or supporter' });
+		const normalizedEmail = email.toLowerCase().trim();
+		if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'Email is already registered' });
+		const user = await User.create({ name, email: normalizedEmail, role, password: await bcrypt.hash(password, 12) });
+		return res.status(201).json({ user: publicUser(user) });
+	} catch (error) { return next(error); }
+});
+app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try { const user = await User.findOne({ _id: req.params.id, role: { $ne: 'admin' } }); if (!user) return res.status(404).json({ message: 'User not found or cannot be removed' }); await User.deleteOne({ _id: user._id }); await Media.deleteMany({ owner: user._id }); await Video.deleteMany({ owner: user._id }); return res.json({ message: 'User removed' }); } catch (error) { return next(error); }
 });
 
 app.post('/api/media/upload', auth, databaseRequired, upload.single('file'), async (req, res, next) => {
@@ -209,7 +222,13 @@ app.use((error, req, res, next) => {
 async function start() {
 	initializeFirebase();
 	if (process.env.MONGODB_URI) {
-		mongoose.connect(process.env.MONGODB_URI).then(() => console.log('MongoDB connected')).catch((error) => console.error('MongoDB connection failed:', error.message));
+		mongoose.connect(process.env.MONGODB_URI).then(async () => {
+			console.log('MongoDB connected');
+			if (process.env.DEFAULT_ADMIN_EMAIL && process.env.DEFAULT_ADMIN_PASSWORD) {
+				const email = process.env.DEFAULT_ADMIN_EMAIL.toLowerCase().trim();
+				if (!await User.exists({ email })) await User.create({ name: process.env.DEFAULT_ADMIN_NAME || 'System administrator', email, role: 'admin', password: await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD, 12) });
+			}
+		}).catch((error) => console.error('MongoDB connection failed:', error.message));
 	} else {
 		console.warn('MONGODB_URI is not configured. Database routes will return 503.');
 	}

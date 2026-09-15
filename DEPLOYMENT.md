@@ -56,6 +56,9 @@ JWT_SECRET=<long-random-secret>
 CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
 FIREBASE_SERVICE_ACCOUNT_JSON=<single-line Firebase service account JSON>
 FIREBASE_STORAGE_BUCKET=<your-project-id>.firebasestorage.app
+DEFAULT_ADMIN_NAME=System administrator
+DEFAULT_ADMIN_EMAIL=<admin email>
+DEFAULT_ADMIN_PASSWORD=<long random password>
 ```
 
 Firebase Storage uploads use `POST /api/media/upload` as multipart form data with a `file` field. The API accepts image and video files up to 500MB and provides metadata CRUD at `/api/media`.

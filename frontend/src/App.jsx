@@ -4,16 +4,14 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Layout/Navbar';
 import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
 import VideoList from './components/Videos/VideoList';
 import VideoPlayer from './components/Videos/VideoPlayer';
 import UploadVideo from './components/Videos/UploadVideo';
 import MediaLibrary from './components/Media/MediaLibrary';
 import Dashboard from './components/Dashboard/Dashboard';
-import Earnings from './components/Dashboard/Earnings';
-import Wallet from './components/Dashboard/Wallet';
 import Loader from './components/Common/Loader';
 import Home from './components/Home/Home';
+import AdminUsers from './components/Admin/AdminUsers';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -31,16 +29,14 @@ const AppLayout = () => {
       <main className={isAuthenticated ? 'pt-16 md:ml-64 md:pt-0' : ''}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
           <Route path="/upload" element={<PrivateRoute><UploadVideo /></PrivateRoute>} />
           <Route path="/media" element={<PrivateRoute><MediaLibrary /></PrivateRoute>} />
+          <Route path="/admin/users" element={<PrivateRoute><AdminUsers /></PrivateRoute>} />
           <Route path="/share-video" element={<Navigate to="/upload" replace />} />
-          <Route path="/earnings" element={<PrivateRoute><Earnings /></PrivateRoute>} />
-          <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
         </Routes>
       </main>
     </div>
