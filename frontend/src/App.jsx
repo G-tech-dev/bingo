@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Layout/Navbar';
@@ -28,12 +28,14 @@ const AdminRoute = ({ children }) => {
 
 const AppLayout = () => {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const hideSidebar = location.pathname === '/admin/users';
 
   return (
     <div className="min-h-screen bg-dark-50">
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#fff', color: '#1e293b' } }} />
-      <Navbar />
-      <main className={isAuthenticated ? 'pt-16 md:ml-64 md:pt-0' : ''}>
+      {!hideSidebar && <Navbar />}
+      <main className={isAuthenticated && !hideSidebar ? 'pt-16 md:ml-64 md:pt-0' : 'pt-0'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />

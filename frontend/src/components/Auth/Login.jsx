@@ -31,10 +31,10 @@ const Login = () => {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-dark-900">
-            Welcome back to Compassion
+            RW0448 UEBR BUSOGO
           </h2>
           <p className="mt-2 text-center text-sm text-dark-600">
-            Sign in to discover organizations and follow their work with children.
+            Sign in to discover organizations.
           </p>
         </div>
 

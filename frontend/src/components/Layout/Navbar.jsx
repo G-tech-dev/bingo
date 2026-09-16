@@ -17,7 +17,7 @@ const Navbar = () => {
     return (
       <header className="border-b border-dark-200 bg-white">
         <div className="container-custom flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="Compassion International"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><FaHandsHelping /></span><span className="text-xl font-bold text-primary-700">Compassion International</span></Link>
+          <Link to="/" className="flex items-center gap-2" aria-label="RW0448 UEBR BUSOGO"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><FaHandsHelping /></span><span className="text-xl font-bold text-primary-700">RW0448 UEBR BUSOGO</span></Link>
           <div className="flex items-center gap-3 sm:gap-4"><Link to="/login" className="btn-primary px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm">Sign in</Link></div>
         </div>
       </header>
@@ -38,7 +38,7 @@ const Navbar = () => {
   const menu = (
     <div className="flex h-full flex-col">
       <div className="flex h-20 items-center justify-between border-b border-dark-700 px-6">
-        <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2" aria-label="Compassion International"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white"><FaHandsHelping /></span><span className="text-xl font-bold text-white">Compassion International</span></Link>
+        <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2" aria-label="RW0448 UEBR BUSOGO"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white"><FaHandsHelping /></span><span className="text-xl font-bold text-white">RW0448 UEBR BUSOGO</span></Link>
         <button type="button" onClick={() => setIsMenuOpen(false)} className="text-dark-300 hover:text-white md:hidden" aria-label="Close menu"><FaTimes /></button>
       </div>
       <div className="flex-1 space-y-1 px-4 py-6">
