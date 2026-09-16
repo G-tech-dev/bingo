@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowRight, FaChartBar, FaImage, FaUsers, FaVideo } from 'react-icons/fa';
+import { FaArrowRight, FaChartBar, FaEye, FaUsers, FaVideo } from 'react-icons/fa';
 import { adminService } from '../../services/api';
 import Loader from '../Common/Loader';
 
@@ -21,8 +21,7 @@ const AdminDashboard = () => {
 
   if (loading) return <Loader />;
 
-  const publishers = users.filter((user) => user.role === 'publisher').length;
-  const supporters = users.filter((user) => user.role === 'supporter').length;
+  const viewers = users.filter((user) => user.role === 'viewer').length;
 
   return (
     <div className="container-custom py-8">
@@ -38,8 +37,7 @@ const AdminDashboard = () => {
       <section className="grid gap-4 sm:grid-cols-3" aria-label="Platform statistics">
         {[
           ['Total accounts', users.length, FaUsers, 'text-primary-600 bg-primary-50'],
-          ['Publishers', publishers, FaVideo, 'text-blue-600 bg-blue-50'],
-          ['Supporters', supporters, FaImage, 'text-green-600 bg-green-50'],
+          ['Viewers', viewers, FaEye, 'text-blue-600 bg-blue-50'],
           ['Published media', media.length, FaVideo, 'text-orange-600 bg-orange-50'],
         ].map(([label, value, Icon, color]) => (
           <div key={label} className="stat-card">
@@ -67,7 +65,7 @@ const AdminDashboard = () => {
         <div className="card p-6 lg:col-span-2">
           <div className="flex items-center gap-3"><FaVideo className="text-primary-600" /><h2 className="font-semibold text-dark-900">Recent published media</h2></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {media.slice(0, 8).map((item) => <div key={item._id} className="border-b border-dark-100 pb-3"><p className="truncate text-sm font-semibold text-dark-800">{item.title || item.originalName}</p><p className="mt-1 text-xs capitalize text-primary-600">{item.type}</p><p className="mt-1 truncate text-xs text-dark-500">{item.owner?.name || 'Unknown publisher'}</p></div>)}
+            {media.slice(0, 8).map((item) => <div key={item._id} className="border-b border-dark-100 pb-3"><p className="truncate text-sm font-semibold text-dark-800">{item.title || item.originalName}</p><p className="mt-1 text-xs capitalize text-primary-600">{item.type}</p><p className="mt-1 truncate text-xs text-dark-500">{item.owner?.name || 'Unknown account'}</p></div>)}
             {media.length === 0 && <p className="text-sm text-dark-500">No published media found.</p>}
           </div>
         </div>

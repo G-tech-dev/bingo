@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
 	name: { type: String, required: true, trim: true },
 	email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 	password: { type: String, required: true, select: false },
-	role: { type: String, enum: ['admin', 'publisher', 'supporter'], default: 'supporter' },
+	role: { type: String, enum: ['admin', 'viewer'], default: 'viewer' },
 	isPremium: { type: Boolean, default: false },
 	premiumPlan: { type: String, default: null },
 	wallet: { balance: { type: Number, default: 0 }, currency: { type: String, default: 'RWF' } },
@@ -155,12 +155,11 @@ app.get('/api/admin/media', auth, adminOnly, databaseRequired, async (req, res, 
 });
 app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
-		const { name, email, password, role = 'supporter' } = req.body;
+		const { name, email, password } = req.body;
 		if (!name || !email || !password || password.length < 6) return res.status(400).json({ message: 'Name, email and a password of at least 6 characters are required' });
-		if (!['publisher', 'supporter'].includes(role)) return res.status(400).json({ message: 'User role must be publisher or supporter' });
 		const normalizedEmail = email.toLowerCase().trim();
 		if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'Email is already registered' });
-		const user = await User.create({ name, email: normalizedEmail, role, password: await bcrypt.hash(password, 12) });
+		const user = await User.create({ name, email: normalizedEmail, role: 'viewer', password: await bcrypt.hash(password, 12) });
 		return res.status(201).json({ user: publicUser(user) });
 	} catch (error) { return next(error); }
 });
