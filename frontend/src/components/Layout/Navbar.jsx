@@ -28,6 +28,9 @@ const Navbar = () => {
     ? [
       { to: '/admin', label: 'Admin overview', icon: FaUserCog },
       { to: '/admin/users', label: 'User management', icon: FaUsers },
+       { to: '/dashboard', label: 'Dashboard', icon: FaHome },
+      { to: '/videos', label: 'Discover content', icon: FaVideo },
+      { to: '/upload', label: 'Add content', icon: FaPlusCircle },
     ]
     : [
       { to: '/dashboard', label: 'Dashboard', icon: FaHome },
