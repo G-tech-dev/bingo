@@ -123,6 +123,15 @@ function adminOnly(req, res, next) {
 	return next();
 }
 
+async function removeLegacyUserIndexes() {
+	try {
+		await User.collection.dropIndex('username_1');
+		console.log('Removed legacy username index');
+	} catch (error) {
+		if (error.code !== 27) throw error;
+	}
+}
+
 const upload = multer({
 	storage: multer.memoryStorage(),
 	limits: { fileSize: 500 * 1024 * 1024 },
@@ -161,7 +170,10 @@ app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res,
 		if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'Email is already registered' });
 		const user = await User.create({ name, email: normalizedEmail, role: 'viewer', password: await bcrypt.hash(password, 12) });
 		return res.status(201).json({ user: publicUser(user) });
-	} catch (error) { return next(error); }
+	} catch (error) {
+		if (error.code === 11000) return res.status(409).json({ message: 'Email is already registered' });
+		return next(error);
+	}
 });
 app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const user = await User.findOne({ _id: req.params.id, role: { $ne: 'admin' } }); if (!user) return res.status(404).json({ message: 'User not found or cannot be removed' }); await User.deleteOne({ _id: user._id }); await Media.deleteMany({ owner: user._id }); await Video.deleteMany({ owner: user._id }); return res.json({ message: 'User removed' }); } catch (error) { return next(error); }
@@ -227,6 +239,7 @@ async function start() {
 	if (process.env.MONGODB_URI) {
 		mongoose.connect(process.env.MONGODB_URI).then(async () => {
 			console.log('MongoDB connected');
+			await removeLegacyUserIndexes();
 			await seedUsersIfMissing(User);
 		}).catch((error) => console.error('MongoDB connection failed:', error.message));
 	} else {
