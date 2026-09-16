@@ -10,13 +10,20 @@ import UploadVideo from './components/Videos/UploadVideo';
 import MediaLibrary from './components/Media/MediaLibrary';
 import Dashboard from './components/Dashboard/Dashboard';
 import Loader from './components/Common/Loader';
-import Home from './components/Home/Home';
 import AdminUsers from './components/Admin/AdminUsers';
+import AdminDashboard from './components/Admin/AdminDashboard';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <Loader />;
   return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return isAdmin ? children : <Navigate to="/dashboard" replace />;
 };
 
 const AppLayout = () => {
@@ -29,13 +36,14 @@ const AppLayout = () => {
       <main className={isAuthenticated ? 'pt-16 md:ml-64 md:pt-0' : ''}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
           <Route path="/upload" element={<PrivateRoute><UploadVideo /></PrivateRoute>} />
           <Route path="/media" element={<PrivateRoute><MediaLibrary /></PrivateRoute>} />
-          <Route path="/admin/users" element={<PrivateRoute><AdminUsers /></PrivateRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/share-video" element={<Navigate to="/upload" replace />} />
         </Routes>
       </main>

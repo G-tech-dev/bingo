@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "dev:seed": "set SEED_SAMPLE_USERS=true&& node server.js",
+    "seed": "node server.js",
     "test": "node --test test/watch-rewards.test.js"
   },
   "dependencies": {

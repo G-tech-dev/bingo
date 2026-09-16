@@ -20,4 +20,6 @@ FIREBASE_SERVICE_ACCOUNT_JSON=<single-line Firebase service account JSON>
 FIREBASE_STORAGE_BUCKET=<your-project-id>.firebasestorage.app
 ```
 
-Uploads use `POST /api/media/upload` with an authenticated multipart `file` field. Media metadata is managed through `/api/media`.
+The API seeds the administrator account automatically when MongoDB connects. Demo login: `admin@compassion.local` / `CompassionAdmin2026!`. Change this password before production use.
+
+Uploads use `POST /api/media/upload` with an authenticated multipart `file` field. The API accepts image, video, and audio files. Media metadata is managed through `/api/media`.

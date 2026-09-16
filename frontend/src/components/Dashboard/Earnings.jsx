@@ -194,11 +194,11 @@ const Earnings = () => {
                 {earnings.historyCount || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center">
-              <FaChartLine className="text-purple-500 text-xl" />
+            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+              <FaChartLine className="text-blue-500 text-xl" />
             </div>
           </div>
-          <div className="mt-3 flex items-center text-sm text-purple-600">
+          <div className="mt-3 flex items-center text-sm text-blue-600">
             <FaArrowUp className="mr-1" />
             <span>+5.7% from last week</span>
           </div>

@@ -52,6 +52,7 @@ export const authService = {
 
 export const adminService = {
   getUsers: () => api.get('/admin/users'),
+  getMedia: () => api.get('/admin/media'),
   createUser: (data) => api.post('/admin/users', data),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };

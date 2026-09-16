@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const admin = require('firebase-admin');
+const { seedUsersIfMissing } = require('./seedData');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -50,7 +51,7 @@ const videoSchema = new mongoose.Schema({
 
 const mediaSchema = new mongoose.Schema({
 	owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-	type: { type: String, enum: ['photo', 'video'], required: true },
+	type: { type: String, enum: ['photo', 'video', 'audio'], required: true },
 	originalName: String,
 	mimeType: String,
 	size: Number,
@@ -125,7 +126,7 @@ function adminOnly(req, res, next) {
 const upload = multer({
 	storage: multer.memoryStorage(),
 	limits: { fileSize: 500 * 1024 * 1024 },
-	fileFilter: (req, file, callback) => callback(null, /^(image|video)\//.test(file.mimetype)),
+	fileFilter: (req, file, callback) => callback(null, /^(image|video|audio)\//.test(file.mimetype)),
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, database: mongoose.connection.readyState === 1, firebaseStorage: Boolean(bucket) }));
@@ -149,6 +150,9 @@ app.post('/api/auth/premium', auth, databaseRequired, async (req, res, next) => 
 app.get('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { return res.json({ users: await User.find().select('name email role createdAt isPremium').sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
 });
+app.get('/api/admin/media', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try { return res.json({ media: await Media.find().populate('owner', 'name email').sort({ createdAt: -1 }).limit(100) }); } catch (error) { return next(error); }
+});
 app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
 		const { name, email, password, role = 'supporter' } = req.body;
@@ -167,8 +171,8 @@ app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req
 app.post('/api/media/upload', auth, databaseRequired, upload.single('file'), async (req, res, next) => {
 	try {
 		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
-		if (!req.file) return res.status(400).json({ message: 'Send an image or video in the file field' });
-		const type = req.file.mimetype.startsWith('video/') ? 'video' : 'photo';
+		if (!req.file) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
+		const type = req.file.mimetype.startsWith('video/') ? 'video' : req.file.mimetype.startsWith('audio/') ? 'audio' : 'photo';
 		const storagePath = `users/${req.user.id}/${type}/${crypto.randomUUID()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 		const file = bucket.file(storagePath);
 		await file.save(req.file.buffer, { metadata: { contentType: req.file.mimetype, metadata: { uploadedBy: req.user.id } } });
@@ -224,10 +228,7 @@ async function start() {
 	if (process.env.MONGODB_URI) {
 		mongoose.connect(process.env.MONGODB_URI).then(async () => {
 			console.log('MongoDB connected');
-			if (process.env.DEFAULT_ADMIN_EMAIL && process.env.DEFAULT_ADMIN_PASSWORD) {
-				const email = process.env.DEFAULT_ADMIN_EMAIL.toLowerCase().trim();
-				if (!await User.exists({ email })) await User.create({ name: process.env.DEFAULT_ADMIN_NAME || 'System administrator', email, role: 'admin', password: await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD, 12) });
-			}
+			await seedUsersIfMissing(User);
 		}).catch((error) => console.error('MongoDB connection failed:', error.message));
 	} else {
 		console.warn('MONGODB_URI is not configured. Database routes will return 503.');
