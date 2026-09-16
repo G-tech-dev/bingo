@@ -46,7 +46,7 @@ const Navbar = () => {
         {links.map(({ to, label, icon: Icon }) => {
           const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
           return <Link key={to} to={to} onClick={() => setIsMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? 'bg-primary-600 text-white' : 'text-dark-300 hover:bg-dark-800 hover:text-white'}`}><Icon className="w-4" /><span>{label}</span></Link>;
-        })}
+        })}                        
       </div>
       <div className="border-t border-dark-700 p-4">
         <div className="mb-3 flex items-center gap-3 rounded-xl bg-dark-800 p-3 text-white"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-500 font-bold">{(user?.name || user?.username || 'U').charAt(0).toUpperCase()}</div><div className="min-w-0"><p className="truncate text-sm font-semibold">{user?.name || user?.username}</p><p className="truncate text-xs text-dark-400">Community member</p></div></div>
