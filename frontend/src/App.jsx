@@ -34,7 +34,19 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen bg-dark-50">
-      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#fff', color: '#1e293b' } }} />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: { background: '#fff', color: '#1e293b', borderRadius: '12px', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.12)' },
+          success: {
+            style: { background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd' },
+          },
+          error: {
+            style: { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' },
+          },
+        }}
+      />
       <Navbar />
       <main className={isAuthenticated ? (isAdmin ? 'pt-16 md:ml-64 md:pt-0' : 'pt-16') : 'pt-0'}>
         <Routes>

@@ -9,7 +9,6 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const admin = require('firebase-admin');
-const { seedUsersIfMissing } = require('./seedData');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -279,7 +278,6 @@ async function start() {
 		mongoose.connect(process.env.MONGODB_URI).then(async () => {
 			console.log('MongoDB connected');
 			await removeLegacyUserIndexes();
-			await seedUsersIfMissing(User);
 		}).catch((error) => console.error('MongoDB connection failed:', error.message));
 	} else {
 		console.warn('MONGODB_URI is not configured. Database routes will return 503.');

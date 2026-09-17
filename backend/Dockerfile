@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
-COPY server.js seedData.js ./
+COPY . .
 
 ENV NODE_ENV=production
 ENV PORT=5000
