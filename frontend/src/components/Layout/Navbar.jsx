@@ -23,12 +23,15 @@ const Navbar = () => {
   ];
   const adminLinks = [
     { to: '/admin', label: 'Admin overview', icon: FaUserCog },
+    { to: '/admin/media', label: 'Uploaded content', icon: FaUpload },
     { to: '/upload', label: 'Upload content', icon: FaUpload },
+    { to: '/about', label: 'About us', icon: FaInfoCircle },
+    { to: '/announcements', label: 'Announcements', icon: FaBullhorn },
     { to: '/admin/users', label: 'User management', icon: FaUsers },
   ];
 
   if (user?.role === 'admin') {
-    const adminMenu = [...adminLinks, ...links];
+    const adminMenu = adminLinks;
     return (
       <>
         <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 bg-dark-900 text-white md:block">

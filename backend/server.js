@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
@@ -14,7 +13,7 @@ const { seedUsersIfMissing } = require('./seedData');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
-const JWT_SECRET = process.env.JWT_SECRET || 'local-development-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET ;
 
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:8080')
 	.split(',')

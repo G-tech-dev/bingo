@@ -53,7 +53,10 @@ const AdminDashboard = () => {
         <div className="card p-6">
           <div className="flex items-center gap-3"><FaChartBar className="text-primary-600" /><h2 className="font-semibold text-dark-900">Content operations</h2></div>
           <p className="mt-3 text-sm leading-6 text-dark-600">Keep the platform focused on clear stories about children, families, and community programs across video, photo, and audio content.</p>
-          <Link to="/upload" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary-700 hover:text-primary-800">Add media <FaArrowRight className="text-xs" /></Link>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link to="/admin/media" className="inline-flex items-center gap-2 text-sm font-semibold text-primary-700 hover:text-primary-800">Manage uploaded content <FaArrowRight className="text-xs" /></Link>
+            <Link to="/upload" className="inline-flex items-center gap-2 text-sm font-semibold text-primary-700 hover:text-primary-800">Add media <FaArrowRight className="text-xs" /></Link>
+          </div>
           <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
             <Link to="/about" className="text-primary-700 hover:text-primary-800">About us</Link>
             <Link to="/stories" className="text-primary-700 hover:text-primary-800">Stories of change</Link>

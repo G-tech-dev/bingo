@@ -46,6 +46,7 @@ const AppLayout = () => {
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
           <Route path="/upload" element={<AdminRoute><UploadVideo /></AdminRoute>} />
           <Route path="/media" element={<PrivateRoute><MediaLibrary /></PrivateRoute>} />
+          <Route path="/admin/media" element={<AdminRoute><MediaLibrary /></AdminRoute>} />
           <Route path="/stories" element={<PrivateRoute><StoriesOfChange /></PrivateRoute>} />
           <Route path="/announcements" element={<PrivateRoute><Announcements /></PrivateRoute>} />
           <Route path="/about" element={<PrivateRoute><AboutUs /></PrivateRoute>} />
