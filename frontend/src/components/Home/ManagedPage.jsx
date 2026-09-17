@@ -84,7 +84,7 @@ const ManagedPage = ({ section, eyebrow, heading, intro, emptyTitle, emptyText, 
     <div className="container-custom py-8">
       <header className="mb-8 border-b border-dark-200 pb-6">
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-primary-600">{eyebrow}</p>
-        <h1 className="mt-2 text-3xl font-extrabold text-dark-900">{heading}</h1>
+        <h1 className="mt-2 text-2xl font-extrabold leading-tight text-dark-900 sm:text-3xl">{heading}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-dark-600">{intro}</p>
       </header>
 

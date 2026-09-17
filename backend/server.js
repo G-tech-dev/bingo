@@ -76,6 +76,7 @@ const pageContentSchema = new mongoose.Schema({
 	body: { type: String, default: '' },
 	owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
+pageContentSchema.index({ section: 1, createdAt: -1 });
 
 const User = mongoose.model('User', userSchema);
 const Video = mongoose.model('Video', videoSchema);
