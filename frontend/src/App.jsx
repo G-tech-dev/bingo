@@ -26,21 +26,22 @@ const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   if (loading) return <Loader />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return isAdmin ? children : <Navigate to="/dashboard" replace />;
+  return isAdmin ? children : <Navigate to="/home" replace />;
 };
 
 const AppLayout = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   return (
     <div className="min-h-screen bg-dark-50">
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#fff', color: '#1e293b' } }} />
       <Navbar />
-      <main className={isAuthenticated ? 'pt-16' : 'pt-0'}>
+      <main className={isAuthenticated ? (isAdmin ? 'pt-16 md:ml-64 md:pt-0' : 'pt-16') : 'pt-0'}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/" element={<Navigate to={isAuthenticated ? '/home' : '/login'} replace />} />
+          <Route path="/home" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
           <Route path="/upload" element={<PrivateRoute><UploadVideo /></PrivateRoute>} />
