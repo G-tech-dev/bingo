@@ -20,7 +20,10 @@ const ManagedPage = ({ section, eyebrow, heading, intro, emptyTitle, emptyText, 
       const response = await pageService.getAll(section);
       setItems(response.data.pages || []);
     } catch (error) {
-      console.error('Page content error:', error);
+      if (error.response?.status !== 404) {
+        console.error('Page content error:', error);
+      }
+      setItems([]);
     } finally {
       setLoading(false);
     }

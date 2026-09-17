@@ -3,7 +3,7 @@ import { FaHandsHelping } from 'react-icons/fa';
 
 const Loader = ({ text = 'Loading community content...' }) => {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="flex flex-col items-center justify-center rounded-[2rem] border border-primary-100 bg-white/90 px-6 py-8 shadow-lg shadow-primary-100/40 backdrop-blur-sm sm:px-10">
         <div className="relative flex h-20 w-20 items-center justify-center">
           <div className="absolute h-full w-full animate-ping rounded-full bg-primary-100/80"></div>
