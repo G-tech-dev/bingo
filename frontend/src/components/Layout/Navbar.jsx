@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FaBars, FaBullhorn, FaHandsHelping, FaInfoCircle, FaSignOutAlt, FaTimes, FaUserCog, FaUsers, FaBookOpen } from 'react-icons/fa';
+import { FaBars, FaBullhorn, FaHandsHelping, FaInfoCircle, FaSignOutAlt, FaTimes, FaUserCog, FaUpload, FaUsers, FaBookOpen } from 'react-icons/fa';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -32,6 +32,7 @@ const Navbar = () => {
   ];
   const adminLinks = [
     { to: '/admin', label: 'Admin overview', icon: FaUserCog },
+    { to: '/upload', label: 'Upload content', icon: FaUpload },
     { to: '/admin/users', label: 'User management', icon: FaUsers },
   ];
 

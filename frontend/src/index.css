@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +7,7 @@
 @layer base {
   body {
     @apply bg-dark-50 text-dark-800 antialiased;
-    font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
   }
 }
 
@@ -43,8 +43,31 @@
   }
 }
 
-*,
-*::before,
-*::after {
-  border-radius: 0 !important;
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .container-custom {
+    @apply px-3;
+  }
+
+  .card,
+  .stat-card,
+  .input-field,
+  .primary-button,
+  .secondary-button {
+    border-radius: 1rem;
+  }
 }

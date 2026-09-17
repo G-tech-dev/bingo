@@ -13,24 +13,39 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   useEffect(() => {
     if (token) {
-      loadUser();
+      if (!user) {
+        loadUser();
+      } else {
+        setLoading(false);
+      }
     } else {
+      setUser(null);
       setLoading(false);
     }
   }, [token]);
 
   const loadUser = async () => {
     try {
+      setLoading(true);
       const response = await authService.getMe();
-      setUser(response.data.user);
+      const currentUser = response.data.user;
+      setUser(currentUser);
+      localStorage.setItem('user', JSON.stringify(currentUser));
     } catch (error) {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
     } finally {
@@ -40,22 +55,27 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      setLoading(true);
       const response = await authService.login({ email, password });
       const { token, user } = response.data;
-      
+
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       setToken(token);
       setUser(user);
-      
+      setLoading(false);
+
       toast.success('Welcome back! 🎉');
       return { success: true };
     } catch (error) {
+      setLoading(false);
       return { success: false, error: error.response?.data?.message || 'Login failed' };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     toast.success('Logged out successfully');
