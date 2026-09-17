@@ -100,6 +100,13 @@ export const mediaService = {
   delete: (id) => api.delete(`/media/${id}`),
 };
 
+export const pageService = {
+  getAll: (section) => api.get(`/pages/${section}`),
+  create: (section, data) => api.post(`/pages/${section}`, data),
+  update: (id, data) => api.put(`/pages/${id}`, data),
+  delete: (id) => api.delete(`/pages/${id}`),
+};
+
 // Watch Services
 export const watchService = {
   track: (data) => api.post('/watch/track', data),

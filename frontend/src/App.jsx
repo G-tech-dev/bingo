@@ -44,7 +44,7 @@ const AppLayout = () => {
           <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
-          <Route path="/upload" element={<PrivateRoute><UploadVideo /></PrivateRoute>} />
+          <Route path="/upload" element={<AdminRoute><UploadVideo /></AdminRoute>} />
           <Route path="/media" element={<PrivateRoute><MediaLibrary /></PrivateRoute>} />
           <Route path="/stories" element={<PrivateRoute><StoriesOfChange /></PrivateRoute>} />
           <Route path="/announcements" element={<PrivateRoute><Announcements /></PrivateRoute>} />

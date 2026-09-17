@@ -70,10 +70,18 @@ const watchSchema = new mongoose.Schema({
 	earned: { type: Number, default: 0 },
 }, { timestamps: true });
 
+const pageContentSchema = new mongoose.Schema({
+	section: { type: String, enum: ['about', 'story', 'announcement'], required: true },
+	title: { type: String, required: true, trim: true },
+	body: { type: String, default: '' },
+	owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+}, { timestamps: true });
+
 const User = mongoose.model('User', userSchema);
 const Video = mongoose.model('Video', videoSchema);
 const Media = mongoose.model('Media', mediaSchema);
 const Watch = mongoose.model('Watch', watchSchema);
+const PageContent = mongoose.model('PageContent', pageContentSchema);
 
 let bucket = null;
 function initializeFirebase() {
@@ -118,9 +126,16 @@ function databaseRequired(req, res, next) {
 	return next();
 }
 
-function adminOnly(req, res, next) {
-	if (req.user.role !== 'admin') return res.status(403).json({ message: 'Administrator access required' });
-	return next();
+async function adminOnly(req, res, next) {
+	try {
+		if (mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'Database is not connected' });
+		const user = await User.findById(req.user.id).select('role');
+		if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Administrator access required' });
+		req.user.role = user.role;
+		return next();
+	} catch (error) {
+		return next(error);
+	}
 }
 
 async function removeLegacyUserIndexes() {
@@ -179,7 +194,7 @@ app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req
 	try { const user = await User.findOne({ _id: req.params.id, role: { $ne: 'admin' } }); if (!user) return res.status(404).json({ message: 'User not found or cannot be removed' }); await User.deleteOne({ _id: user._id }); await Media.deleteMany({ owner: user._id }); await Video.deleteMany({ owner: user._id }); return res.json({ message: 'User removed' }); } catch (error) { return next(error); }
 });
 
-app.post('/api/media/upload', auth, databaseRequired, upload.single('file'), async (req, res, next) => {
+app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.single('file'), async (req, res, next) => {
 	try {
 		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
 		if (!req.file) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
@@ -200,23 +215,54 @@ app.post('/api/media/upload', auth, databaseRequired, upload.single('file'), asy
 });
 
 app.get('/api/media', auth, databaseRequired, async (req, res, next) => {
-	try { return res.json({ media: await Media.find({ owner: req.user.id }).sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
+	try { return res.json({ media: await Media.find().sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
 });
 app.get('/api/media/:id', auth, databaseRequired, async (req, res, next) => {
-	try { const media = await Media.findOne({ _id: req.params.id, owner: req.user.id }); if (!media) return res.status(404).json({ message: 'Media not found' }); return res.json({ media }); } catch (error) { return next(error); }
+	try { const media = await Media.findById(req.params.id); if (!media) return res.status(404).json({ message: 'Media not found' }); return res.json({ media }); } catch (error) { return next(error); }
 });
-app.put('/api/media/:id', auth, databaseRequired, async (req, res, next) => {
+app.put('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findOneAndUpdate({ _id: req.params.id, owner: req.user.id }, { $set: { title: req.body.title, description: req.body.description } }, { new: true, runValidators: true }); if (!media) return res.status(404).json({ message: 'Media not found' }); if (media.type === 'video') await Video.findOneAndUpdate({ media: media._id, owner: req.user.id }, { videoTitle: media.title, videoDescription: media.description }); return res.json({ media }); } catch (error) { return next(error); }
 });
-app.delete('/api/media/:id', auth, databaseRequired, async (req, res, next) => {
+app.delete('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!media) return res.status(404).json({ message: 'Media not found' }); await Video.deleteOne({ media: media._id, owner: req.user.id }); if (bucket) await bucket.file(media.storagePath).delete().catch(() => {}); return res.json({ message: 'Media deleted' }); } catch (error) { return next(error); }
 });
 
-app.post('/api/videos', auth, databaseRequired, async (req, res, next) => { try { return res.status(201).json({ video: await Video.create({ ...req.body, owner: req.user.id }) }); } catch (error) { return next(error); } });
+app.post('/api/videos', auth, adminOnly, databaseRequired, async (req, res, next) => { try { return res.status(201).json({ video: await Video.create({ ...req.body, owner: req.user.id }) }); } catch (error) { return next(error); } });
 app.get('/api/videos', databaseRequired, async (req, res, next) => { try { const query = req.query.category && req.query.category !== 'all' ? { category: req.query.category } : {}; return res.json({ videos: await Video.find(query).sort({ createdAt: -1 }) }); } catch (error) { return next(error); } });
 app.get('/api/videos/:id', databaseRequired, async (req, res, next) => { try { const video = await Video.findById(req.params.id); if (!video) return res.status(404).json({ message: 'Video not found' }); return res.json({ video }); } catch (error) { return next(error); } });
-app.put('/api/videos/:id', auth, databaseRequired, async (req, res, next) => { try { const video = await Video.findOneAndUpdate({ _id: req.params.id, owner: req.user.id }, { $set: req.body }, { new: true, runValidators: true }); if (!video) return res.status(404).json({ message: 'Video not found' }); return res.json({ video }); } catch (error) { return next(error); } });
-app.delete('/api/videos/:id', auth, databaseRequired, async (req, res, next) => { try { const video = await Video.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!video) return res.status(404).json({ message: 'Video not found' }); return res.json({ message: 'Video deleted' }); } catch (error) { return next(error); } });
+app.put('/api/videos/:id', auth, adminOnly, databaseRequired, async (req, res, next) => { try { const video = await Video.findOneAndUpdate({ _id: req.params.id, owner: req.user.id }, { $set: req.body }, { new: true, runValidators: true }); if (!video) return res.status(404).json({ message: 'Video not found' }); return res.json({ video }); } catch (error) { return next(error); } });
+app.delete('/api/videos/:id', auth, adminOnly, databaseRequired, async (req, res, next) => { try { const video = await Video.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!video) return res.status(404).json({ message: 'Video not found' }); return res.json({ message: 'Video deleted' }); } catch (error) { return next(error); } });
+
+const pageSections = ['about', 'story', 'announcement'];
+app.get('/api/pages/:section', auth, databaseRequired, async (req, res, next) => {
+	try {
+		if (!pageSections.includes(req.params.section)) return res.status(400).json({ message: 'Unknown page section' });
+		return res.json({ pages: await PageContent.find({ section: req.params.section }).sort({ createdAt: -1 }) });
+	} catch (error) { return next(error); }
+});
+app.post('/api/pages/:section', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		if (!pageSections.includes(req.params.section)) return res.status(400).json({ message: 'Unknown page section' });
+		const title = req.body.title?.trim();
+		if (!title) return res.status(400).json({ message: 'Title is required' });
+		const page = await PageContent.create({ section: req.params.section, title, body: req.body.body || '', owner: req.user.id });
+		return res.status(201).json({ page });
+	} catch (error) { return next(error); }
+});
+app.put('/api/pages/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const page = await PageContent.findByIdAndUpdate(req.params.id, { $set: { title: req.body.title, body: req.body.body } }, { new: true, runValidators: true });
+		if (!page) return res.status(404).json({ message: 'Content not found' });
+		return res.json({ page });
+	} catch (error) { return next(error); }
+});
+app.delete('/api/pages/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const page = await PageContent.findByIdAndDelete(req.params.id);
+		if (!page) return res.status(404).json({ message: 'Content not found' });
+		return res.json({ message: 'Content deleted' });
+	} catch (error) { return next(error); }
+});
 
 
 app.use((error, req, res, next) => {
