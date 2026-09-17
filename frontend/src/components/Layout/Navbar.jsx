@@ -13,16 +13,7 @@ const Navbar = () => {
     navigate('/login');
   };
 
-  if (!isAuthenticated) {
-    return (
-      <header className="border-b border-dark-200 bg-white">
-        <div className="container-custom flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="RW0448"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><FaHandsHelping /></span><span className="text-xl font-bold text-primary-700">RW0448 </span></Link>
-          <div className="flex items-center gap-3 sm:gap-4"><Link to="/login" className="btn-primary px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm">Sign in</Link></div>
-        </div>
-      </header>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   const links = [
     { to: '/home', label: 'Home', icon: FaBookOpen },
