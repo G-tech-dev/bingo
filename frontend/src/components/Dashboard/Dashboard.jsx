@@ -33,7 +33,7 @@ const Dashboard = () => {
     <div className="container-custom py-8">
       <header className="mb-8">
         <p className="text-sm font-semibold uppercase tracking-wider text-primary-600">Umushinga home</p>
-        <h1 className="mt-1 text-3xl font-bold text-dark-900">Welcome, {user?.name || user?.username || 'community member'}</h1>
+        <h1 className="mt-1 text-3xl font-bold text-dark-900">Welcome {user?.name || user?.username || 'community member'}</h1>
         <p className="mt-2 text-dark-600">See the photos, videos, and audio already shared with the community.</p>
       </header>
 

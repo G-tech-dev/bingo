@@ -23,11 +23,11 @@ const Navbar = () => {
   ];
   const adminLinks = [
     { to: '/admin', label: 'Admin overview', icon: FaUserCog },
-    { to: '/admin/media', label: 'contents', icon: FaUpload },
+    { to: '/admin/media', label: 'contents', icon: FaBookOpen },
     { to: '/upload', label: 'Upload content', icon: FaUpload },
     { to: '/about', label: 'About us', icon: FaInfoCircle },
     { to: '/announcements', label: 'Announcements', icon: FaBullhorn },
-    { to: '/admin/users', label: 'User management', icon: FaUsers },
+    { to: '/admin/users', label: 'manage User', icon: FaUsers },
   ];
 
   if (user?.role === 'admin') {
@@ -50,7 +50,7 @@ const Navbar = () => {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-dark-200 bg-white shadow-sm">
       <div className="container-custom flex min-h-16 items-center justify-between gap-4 py-2">
-        <Link to="/home" className="flex shrink-0 items-center gap-2" aria-label="RW0448"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white"><FaHandsHelping /></span><span className="hidden text-lg font-bold text-primary-700 sm:inline">RW0448 B</span></Link>
+        <Link to="/home" className="flex shrink-0 items-center gap-2" aria-label="RW0448"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white"><FaHandsHelping /></span><span className="hidden text-lg font-bold text-primary-700 sm:inline">RW0448 UEBR</span></Link>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">{links.map(({ to, label, icon: Icon }) => { const active = location.pathname === to || location.pathname.startsWith(`${to}/`); return <Link key={to} to={to} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${active ? 'bg-primary-50 text-primary-700' : 'text-dark-600 hover:bg-dark-50 hover:text-primary-700'}`}><Icon className="text-xs" />{label}</Link>; })}</nav>
         <div className="flex items-center gap-2"><span className="hidden text-sm font-semibold text-dark-700 md:inline">{user?.name}</span><button type="button" onClick={handleLogout} className="rounded-lg p-2 text-dark-500 hover:bg-red-50 hover:text-red-600" aria-label="Sign out" title="Sign out"><FaSignOutAlt /></button><button type="button" onClick={() => setIsMenuOpen((current) => !current)} className="rounded-lg p-2 text-dark-700 lg:hidden" aria-label="Open navigation menu">{isMenuOpen ? <FaTimes /> : <FaBars />}</button></div>
       </div>

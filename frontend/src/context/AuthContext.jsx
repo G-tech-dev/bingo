@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       setLoading(false);
 
-      toast.success('Welcome back! 🎉');
+      toast.success('Welcome back!');
       return { success: true };
     } catch (error) {
       setLoading(false);

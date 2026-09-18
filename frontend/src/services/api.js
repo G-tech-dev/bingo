@@ -71,6 +71,7 @@ export const adminService = {
   getUsers: () => api.get('/admin/users'),
   getMedia: () => api.get('/admin/media'),
   createUser: (data) => api.post('/admin/users', data),
+  promoteUser: (id) => api.put(`/admin/users/${id}/role`, { role: 'admin' }),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };
 
@@ -88,7 +89,10 @@ export const mediaService = {
   upload: (file, data = {}, onUploadProgress) => {
     const formData = new FormData();
     formData.append('file', file);
-    Object.entries(data).forEach(([key, value]) => formData.append(key, value ?? ''));
+    Object.entries(data).forEach(([key, value]) => {
+      if (value instanceof File) formData.append(key, value);
+      else formData.append(key, value ?? '');
+    });
     return api.post('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress,
@@ -97,6 +101,8 @@ export const mediaService = {
   getAll: () => api.get('/media'),
   getById: (id) => api.get(`/media/${id}`),
   update: (id, data) => api.put(`/media/${id}`, data),
+  updateBackground: (id, file) => { const formData = new FormData(); formData.append('backgroundImage', file); return api.put(`/media/${id}/background`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+  deleteBackground: (id) => api.delete(`/media/${id}/background`),
   delete: (id) => api.delete(`/media/${id}`),
 };
 

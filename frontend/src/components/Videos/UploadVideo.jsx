@@ -10,6 +10,7 @@ const UploadVideo = () => {
   const { isAdmin } = useAuth();
   const [contentType, setContentType] = useState('video');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [backgroundImage, setBackgroundImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -29,6 +30,7 @@ const UploadVideo = () => {
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
     setContentType(type);
     setSelectedFile(null);
+    setBackgroundImage(null);
     setProgress(0);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
@@ -74,7 +76,8 @@ const UploadVideo = () => {
       toast.error('Files must be smaller than 500MB.');
       return;
     }
-    if (!file.type.startsWith(`${contentType}/`)) {
+    const expectedMimeType = contentType === 'photo' ? 'image' : contentType;
+    if (!file.type.startsWith(`${expectedMimeType}/`)) {
       toast.error(`Choose a ${contentType} file.`);
       return;
     }
@@ -95,6 +98,7 @@ const UploadVideo = () => {
       await mediaService.upload(selectedFile, {
         title: formData.title,
         description: formData.description,
+        ...(contentType === 'audio' && backgroundImage ? { backgroundImage: await fileToBase64(backgroundImage) } : {}),
       }, (uploadEvent) => {
         if (uploadEvent.total) setProgress(Math.round((uploadEvent.loaded * 100) / uploadEvent.total));
       });
@@ -106,6 +110,13 @@ const UploadVideo = () => {
       setLoading(false);
     }
   };
+
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
   if (!isAdmin) return null;
 
@@ -122,7 +133,7 @@ const UploadVideo = () => {
           </div>
           <div><label className="mb-1 block text-sm font-medium text-dark-700">Title *</label><input name="title" value={formData.title} onChange={handleChange} required maxLength="200" className="input-field" placeholder={`Enter ${contentType} title`} /></div>
           <div><label className="mb-1 block text-sm font-medium text-dark-700">Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows="4" className="input-field" placeholder="Describe your content" /></div>
-          <div><label className="mb-1 block text-sm font-medium text-dark-700">{contentType.charAt(0).toUpperCase() + contentType.slice(1)} file *</label><input type="file" accept={`${contentType}/*`} onChange={handleFileChange} required={!selectedFile} disabled={recording} className="input-field" /><p className="mt-1 text-xs text-dark-400">Maximum file size: 500MB</p>{contentType === 'audio' && <div className="mt-3 flex items-center gap-3"><button type="button" onClick={recording ? stopRecording : startRecording} disabled={loading} className="secondary-button px-4 py-2 text-sm">{recording ? 'Stop recording' : 'Record audio'}</button>{recording && <span className="text-sm text-red-600">Recording...</span>}</div>}{previewUrl && (contentType === 'photo' ? <img src={previewUrl} alt="Selected content preview" className="mt-3 max-h-64 rounded-lg object-contain" /> : <div className="mt-3 rounded-lg bg-dark-50 p-4"><audio src={previewUrl} controls={contentType === 'audio'} className="w-full" />{contentType === 'video' && <video src={previewUrl} controls className="max-h-64 w-full rounded-lg" />}</div>)}</div>
+          <div><label className="mb-1 block text-sm font-medium text-dark-700">{contentType.charAt(0).toUpperCase() + contentType.slice(1)} file *</label><input type="file" accept={`${contentType === 'photo' ? 'image' : contentType}/*`} onChange={handleFileChange} required={!selectedFile} disabled={recording} className="input-field" /><p className="mt-1 text-xs text-dark-400">Maximum file size: 500MB</p>{contentType === 'audio' && <><div className="mt-3 flex items-center gap-3"><button type="button" onClick={recording ? stopRecording : startRecording} disabled={loading} className="secondary-button px-4 py-2 text-sm">{recording ? 'Stop recording' : 'Record audio'}</button>{recording && <span className="text-sm text-red-600">Recording...</span>}</div><label className="mt-4 block text-sm font-medium text-dark-700">Audio background image</label><input type="file" accept="image/*" onChange={(event) => setBackgroundImage(event.target.files?.[0] || null)} className="input-field" /><p className="mt-1 text-xs text-dark-400">Optional image shown behind the audio player.</p></>}{previewUrl && (contentType === 'photo' ? <img src={previewUrl} alt="Selected content preview" className="mt-3 max-h-64 rounded-lg object-contain" /> : <div className="mt-3 rounded-lg bg-dark-50 p-4"><audio src={previewUrl} controls={contentType === 'audio'} className="w-full" />{contentType === 'video' && <video src={previewUrl} controls className="max-h-64 w-full rounded-lg" />}</div>)}</div>
           <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700"><FaInfoCircle className="mt-0.5 shrink-0" /><p>Content is stored securely in Firebase Storage. Published content will be visible to people looking for organizations helping children.</p></div>
           <button type="submit" disabled={loading} className="btn-primary flex w-full items-center justify-center gap-2 py-3 disabled:cursor-not-allowed disabled:opacity-50">{loading ? <><FaSpinner className="animate-spin" /> Uploading {progress ? `${progress}%` : ''}</> : <><FaUpload /> Upload {contentType}</>}</button>
         </form>

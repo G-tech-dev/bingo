@@ -57,6 +57,9 @@ const mediaSchema = new mongoose.Schema({
 	storagePath: { type: String, required: true },
 	url: { type: String, required: true },
 	videoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Video' },
+	backgroundImageUrl: { type: String, default: '' },
+	backgroundImageMedia: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+	isBackground: { type: Boolean, default: false },
 	title: { type: String, default: '' },
 	description: { type: String, default: '' },
 }, { timestamps: true });
@@ -163,6 +166,15 @@ const upload = multer({
 	fileFilter: (req, file, callback) => callback(null, /^(image|video|audio)\//.test(file.mimetype)),
 });
 
+const signedUrlExpiry = () => Date.now() + (10 * 365 * 24 * 60 * 60 * 1000);
+const saveStorageFile = async (file, userId, type, title = '') => {
+	const storagePath = `users/${userId}/${type}/${crypto.randomUUID()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+	const storageFile = bucket.file(storagePath);
+	await storageFile.save(file.buffer, { metadata: { contentType: file.mimetype, metadata: { uploadedBy: userId } } });
+	const [url] = await storageFile.getSignedUrl({ action: 'read', expires: signedUrlExpiry() });
+	return { storagePath, url, title };
+};
+
 app.get('/api/health', (req, res) => res.json({ ok: true, database: mongoose.connection.readyState === 1, firebaseStorage: Boolean(bucket) }));
 
 app.post('/api/auth/login', databaseRequired, async (req, res, next) => {
@@ -200,20 +212,36 @@ app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res,
 		return next(error);
 	}
 });
+app.put('/api/admin/users/:id/role', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		if (req.body.role !== 'admin') return res.status(400).json({ message: 'Only promotion to administrator is supported' });
+		const user = await User.findByIdAndUpdate(req.params.id, { role: 'admin' }, { new: true, runValidators: true }).select('name email role createdAt isPremium');
+		if (!user) return res.status(404).json({ message: 'User not found' });
+		return res.json({ user });
+	} catch (error) { return next(error); }
+});
 app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const user = await User.findOne({ _id: req.params.id, role: { $ne: 'admin' } }); if (!user) return res.status(404).json({ message: 'User not found or cannot be removed' }); await User.deleteOne({ _id: user._id }); await Media.deleteMany({ owner: user._id }); await Video.deleteMany({ owner: user._id }); return res.json({ message: 'User removed' }); } catch (error) { return next(error); }
 });
 
-app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.single('file'), async (req, res, next) => {
+app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([{ name: 'file', maxCount: 1 }, { name: 'backgroundImage', maxCount: 1 }]), async (req, res, next) => {
 	try {
 		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
-		if (!req.file) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
-		const type = req.file.mimetype.startsWith('video/') ? 'video' : req.file.mimetype.startsWith('audio/') ? 'audio' : 'photo';
-		const storagePath = `users/${req.user.id}/${type}/${crypto.randomUUID()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-		const file = bucket.file(storagePath);
-		await file.save(req.file.buffer, { metadata: { contentType: req.file.mimetype, metadata: { uploadedBy: req.user.id } } });
-		const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + (10 * 365 * 24 * 60 * 60 * 1000) });
-		const media = await Media.create({ owner: req.user.id, type, originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, storagePath, url, title: req.body.title || '', description: req.body.description || '' });
+		const mediaFile = req.files?.file?.[0];
+		const backgroundFile = req.files?.backgroundImage?.[0];
+		if (!mediaFile) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
+		const type = mediaFile.mimetype.startsWith('video/') ? 'video' : mediaFile.mimetype.startsWith('audio/') ? 'audio' : 'photo';
+		if (backgroundFile && type !== 'audio') return res.status(400).json({ message: 'Background images can only be added to audio.' });
+		if (backgroundFile && !backgroundFile.mimetype.startsWith('image/')) return res.status(400).json({ message: 'The audio background must be an image.' });
+		const savedMedia = await saveStorageFile(mediaFile, req.user.id, type, req.body.title || '');
+		let backgroundImageUrl = '';
+		let backgroundImageMedia;
+		if (backgroundFile) {
+			const savedBackground = await saveStorageFile(backgroundFile, req.user.id, 'photo', req.body.title || '');
+			backgroundImageUrl = savedBackground.url;
+			backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
+		}
+		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id });
 		let video = null;
 		if (type === 'video') {
 			video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: url, videoTitle: req.body.title || req.file.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
@@ -225,13 +253,45 @@ app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.single('
 });
 
 app.get('/api/media', auth, databaseRequired, async (req, res, next) => {
-	try { return res.json({ media: await Media.find().sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
+	try { return res.json({ media: await Media.find({ isBackground: { $ne: true } }).sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
 });
 app.get('/api/media/:id', auth, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findById(req.params.id); if (!media) return res.status(404).json({ message: 'Media not found' }); return res.json({ media }); } catch (error) { return next(error); }
 });
 app.put('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findOneAndUpdate({ _id: req.params.id, owner: req.user.id }, { $set: { title: req.body.title, description: req.body.description } }, { new: true, runValidators: true }); if (!media) return res.status(404).json({ message: 'Media not found' }); if (media.type === 'video') await Video.findOneAndUpdate({ media: media._id, owner: req.user.id }, { videoTitle: media.title, videoDescription: media.description }); return res.json({ media }); } catch (error) { return next(error); }
+});
+app.put('/api/media/:id/background', auth, adminOnly, databaseRequired, upload.single('backgroundImage'), async (req, res, next) => {
+	try {
+		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
+		const media = await Media.findOne({ _id: req.params.id, owner: req.user.id, type: 'audio' });
+		if (!media) return res.status(404).json({ message: 'Audio not found' });
+		if (!req.file || !req.file.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Choose an image background.' });
+		if (media.backgroundImageMedia) {
+			const oldBackground = await Media.findById(media.backgroundImageMedia);
+			if (oldBackground) { await bucket.file(oldBackground.storagePath).delete().catch(() => {}); await Media.deleteOne({ _id: oldBackground._id }); }
+		}
+		const savedBackground = await saveStorageFile(req.file, req.user.id, 'photo', media.title);
+		const background = await Media.create({ owner: req.user.id, type: 'photo', originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, storagePath: savedBackground.storagePath, url: savedBackground.url, title: media.title, description: 'Audio background image', isBackground: true });
+		media.backgroundImageUrl = savedBackground.url;
+		media.backgroundImageMedia = background._id;
+		await media.save();
+		return res.json({ media });
+	} catch (error) { return next(error); }
+});
+app.delete('/api/media/:id/background', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const media = await Media.findOne({ _id: req.params.id, owner: req.user.id, type: 'audio' });
+		if (!media) return res.status(404).json({ message: 'Audio not found' });
+		if (media.backgroundImageMedia) {
+			const background = await Media.findById(media.backgroundImageMedia);
+			if (background) { if (bucket) await bucket.file(background.storagePath).delete().catch(() => {}); await Media.deleteOne({ _id: background._id }); }
+		}
+		media.backgroundImageUrl = '';
+		media.backgroundImageMedia = undefined;
+		await media.save();
+		return res.json({ media });
+	} catch (error) { return next(error); }
 });
 app.delete('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!media) return res.status(404).json({ message: 'Media not found' }); await Video.deleteOne({ media: media._id, owner: req.user.id }); if (bucket) await bucket.file(media.storagePath).delete().catch(() => {}); return res.json({ message: 'Media deleted' }); } catch (error) { return next(error); }
