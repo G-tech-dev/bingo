@@ -17,7 +17,7 @@ const Navbar = () => {
 
   const links = [
     { to: '/home', label: 'Home', icon: FaBookOpen },
-    { to: '/stories', label: Stories of Change', icon: FaBookOpen },
+    { to: '/stories', label: 'Stories of Change', icon: FaBookOpen },
     { to: '/announcements', label: 'Announcements', icon: FaBullhorn },
     { to: '/about', label: 'About Us', icon: FaInfoCircle },
   ];
