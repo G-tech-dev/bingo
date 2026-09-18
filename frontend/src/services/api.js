@@ -107,6 +107,13 @@ export const pageService = {
   delete: (id) => api.delete(`/pages/${id}`),
 };
 
+export const workerService = {
+  getAll: () => api.get('/workers'),
+  create: (data) => api.post('/workers', data),
+  update: (id, data) => api.put(`/workers/${id}`, data),
+  delete: (id) => api.delete(`/workers/${id}`),
+};
+
 // Watch Services
 export const watchService = {
   track: (data) => api.post('/watch/track', data),

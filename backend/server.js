@@ -76,11 +76,21 @@ const pageContentSchema = new mongoose.Schema({
 }, { timestamps: true });
 pageContentSchema.index({ section: 1, createdAt: -1 });
 
+const workerSchema = new mongoose.Schema({
+	owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+	name: { type: String, required: true, trim: true },
+	role: { type: String, default: '', trim: true },
+	details: { type: String, default: '' },
+	photoUrl: { type: String, default: '' },
+	photoMedia: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+}, { timestamps: true });
+
 const User = mongoose.model('User', userSchema);
 const Video = mongoose.model('Video', videoSchema);
 const Media = mongoose.model('Media', mediaSchema);
 const Watch = mongoose.model('Watch', watchSchema);
 const PageContent = mongoose.model('PageContent', pageContentSchema);
+const Worker = mongoose.model('Worker', workerSchema);
 
 let bucket = null;
 function initializeFirebase() {
@@ -260,6 +270,32 @@ app.delete('/api/pages/:id', auth, adminOnly, databaseRequired, async (req, res,
 		const page = await PageContent.findByIdAndDelete(req.params.id);
 		if (!page) return res.status(404).json({ message: 'Content not found' });
 		return res.json({ message: 'Content deleted' });
+	} catch (error) { return next(error); }
+});
+
+app.get('/api/workers', auth, databaseRequired, async (req, res, next) => {
+	try { return res.json({ workers: await Worker.find().sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
+});
+app.post('/api/workers', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const name = req.body.name?.trim();
+		if (!name) return res.status(400).json({ message: 'Worker name is required' });
+		const worker = await Worker.create({ name, role: req.body.role || '', details: req.body.details || '', photoUrl: req.body.photoUrl || '', photoMedia: req.body.photoMedia || undefined, owner: req.user.id });
+		return res.status(201).json({ worker });
+	} catch (error) { return next(error); }
+});
+app.put('/api/workers/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const worker = await Worker.findByIdAndUpdate(req.params.id, { $set: { name: req.body.name, role: req.body.role || '', details: req.body.details || '', photoUrl: req.body.photoUrl || '', photoMedia: req.body.photoMedia || undefined } }, { new: true, runValidators: true });
+		if (!worker) return res.status(404).json({ message: 'Worker not found' });
+		return res.json({ worker });
+	} catch (error) { return next(error); }
+});
+app.delete('/api/workers/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
+	try {
+		const worker = await Worker.findByIdAndDelete(req.params.id);
+		if (!worker) return res.status(404).json({ message: 'Worker not found' });
+		return res.json({ message: 'Worker deleted' });
 	} catch (error) { return next(error); }
 });
 
