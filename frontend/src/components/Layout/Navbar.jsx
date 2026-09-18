@@ -17,17 +17,17 @@ const Navbar = () => {
 
   const links = [
     { to: '/home', label: 'Home', icon: FaBookOpen },
-    { to: '/stories', label: 'Stories of Change', icon: FaBookOpen },
+    { to: '/stories', label: Stories of Change', icon: FaBookOpen },
     { to: '/announcements', label: 'Announcements', icon: FaBullhorn },
     { to: '/about', label: 'About Us', icon: FaInfoCircle },
   ];
   const adminLinks = [
     { to: '/admin', label: 'Admin overview', icon: FaUserCog },
-    { to: '/admin/media', label: 'contents', icon: FaBookOpen },
+    { to: '/admin/media', label: 'Contents', icon: FaBookOpen },
     { to: '/upload', label: 'Upload content', icon: FaUpload },
     { to: '/about', label: 'About us', icon: FaInfoCircle },
     { to: '/announcements', label: 'Announcements', icon: FaBullhorn },
-    { to: '/admin/users', label: 'manage User', icon: FaUsers },
+    { to: '/admin/users', label: 'Manage user', icon: FaUsers },
   ];
 
   if (user?.role === 'admin') {
