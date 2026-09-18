@@ -23,7 +23,7 @@ const Navbar = () => {
   ];
   const adminLinks = [
     { to: '/admin', label: 'Admin overview', icon: FaUserCog },
-    { to: '/admin/media', label: 'Uploaded content', icon: FaUpload },
+    { to: '/admin/media', label: 'contents', icon: FaUpload },
     { to: '/upload', label: 'Upload content', icon: FaUpload },
     { to: '/about', label: 'About us', icon: FaInfoCircle },
     { to: '/announcements', label: 'Announcements', icon: FaBullhorn },

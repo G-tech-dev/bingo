@@ -17,6 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET ;
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:8080')
 	.split(',')
 	.map((origin) => origin.trim())
+	.map((origin) => origin.replace(/\/+$/, ''))
 	.filter(Boolean);
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -211,7 +212,7 @@ app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.single('
 		const storagePath = `users/${req.user.id}/${type}/${crypto.randomUUID()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 		const file = bucket.file(storagePath);
 		await file.save(req.file.buffer, { metadata: { contentType: req.file.mimetype, metadata: { uploadedBy: req.user.id } } });
-		const [url] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+		const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + (10 * 365 * 24 * 60 * 60 * 1000) });
 		const media = await Media.create({ owner: req.user.id, type, originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, storagePath, url, title: req.body.title || '', description: req.body.description || '' });
 		let video = null;
 		if (type === 'video') {
@@ -302,10 +303,11 @@ app.delete('/api/workers/:id', auth, adminOnly, databaseRequired, async (req, re
 
 app.use((error, req, res, next) => {
 	if (error instanceof multer.MulterError || error.message?.includes('File too large')) return res.status(400).json({ message: 'File is too large. Maximum size is 500MB.' });
+	if (error.message?.includes('File type')) return res.status(400).json({ message: error.message });
 	if (error.name === 'ValidationError') return res.status(400).json({ message: error.message });
 	if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid resource id' });
 	console.error(error);
-	return res.status(500).json({ message: 'Internal server error' });
+	return res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Upload failed. Check Firebase Storage configuration.' : error.message || 'Internal server error' });
 });
 
 async function start() {
