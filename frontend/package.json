@@ -1,9 +1,9 @@
 {
-  "name": "watch-to-earn-frontend",
+  "name": "RW0448 Platform Backend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Watch-to-Earn Platform - Frontend Application",
+  "description": "RW0448 Platform - Frontend Application",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

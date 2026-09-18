@@ -28,24 +28,17 @@ If the remote already exists, use `git remote set-url origin https://github.com/
 
 5. Deploy. `frontend/vercel.json` keeps React Router routes working after a refresh.
 
-### Firebase setup
+### Cloudinary media storage
 
-1. Create or open a Firebase project at `console.firebase.google.com`.
-2. Enable Storage and create a Storage bucket.
-3. In Project settings, create a Web app only if you also need Firebase client services; the backend uses the Admin SDK.
-4. In **Service accounts**, generate a new private key. Store the entire downloaded JSON as the Render `FIREBASE_SERVICE_ACCOUNT_JSON` secret.
-5. Copy the bucket name shown in Firebase Storage into `FIREBASE_STORAGE_BUCKET`.
+1. Create a free Cloudinary account.
+2. Copy the cloud name, API key, and API secret from the Cloudinary console.
+3. Add them as backend environment variables. Media is uploaded server-side and its URL and public ID are stored in MongoDB.
 
-Never commit the service-account JSON or a `.env` file.
+Never commit API secrets or a `.env` file.
 
 ## Backend hosting on Render
 
-Vercel does not run the backend Docker container as a persistent Express service. This repository includes `render.yaml` for deploying the API to Render with `backend/Dockerfile`.
-
-1. Open Render and choose **New > Blueprint**.
-2. Connect `G-tech-dev/bingo` and select the `main` branch.
-3. Render detects `render.yaml` and creates the `compassion-api` web service.
-4. Set the secret environment variables when prompted:
+The frontend remains on Vercel. Deploy the backend as a Render Web Service using `render.yaml` or the backend Dockerfile.
 
 Set these backend environment variables on that host:
 
@@ -54,11 +47,12 @@ NODE_ENV=production
 MONGODB_URI=mongodb+srv://...
 JWT_SECRET=<long-random-secret>
 CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
-FIREBASE_SERVICE_ACCOUNT_JSON=<single-line Firebase service account JSON>
-FIREBASE_STORAGE_BUCKET=<your-project-id>.firebasestorage.app
+CLOUDINARY_CLOUD_NAME=<your-cloud-name>
+CLOUDINARY_API_KEY=<your-api-key>
+CLOUDINARY_API_SECRET=<your-api-secret>
 ```
 
-Firebase Storage uploads use `POST /api/media/upload` as multipart form data with a `file` field. The API accepts image, video, and audio files up to 500MB and provides metadata CRUD at `/api/media`.
+Cloudinary uploads use `POST /api/media/upload` as multipart form data with a `file` field. The API accepts image, video, and audio files and provides metadata CRUD at `/api/media`.
 
 When MongoDB connects, the API automatically seeds the administrator account if it does not already exist:
 
@@ -69,13 +63,13 @@ Password: CompassionAdmin2026!
 
 Change this demo password before production use.
 
-The service must expose its assigned `PORT`. Verify it with:
+Verify the Render deployment with:
 
 ```text
 https://YOUR-BACKEND-DOMAIN/api/health
 ```
 
-After the backend is live, set `VITE_API_URL` in Vercel to its `/api` URL and redeploy the frontend.
+After the backend is live, set `VITE_API_URL` in Vercel to its `/api` URL and redeploy the frontend. `VITE_API_BASE` is also supported by the bot API client.
 
 ## Local Docker stack
 

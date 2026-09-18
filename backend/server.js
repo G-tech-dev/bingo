@@ -1,5 +1,4 @@
 require('dotenv').config();
-const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -8,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const admin = require('firebase-admin');
+const { v2: cloudinary } = require('cloudinary');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -55,6 +54,7 @@ const mediaSchema = new mongoose.Schema({
 	mimeType: String,
 	size: Number,
 	storagePath: { type: String, required: true },
+	storageResourceType: { type: String, default: 'image' },
 	url: { type: String, required: true },
 	videoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Video' },
 	backgroundImageUrl: { type: String, default: '' },
@@ -96,24 +96,12 @@ const Watch = mongoose.model('Watch', watchSchema);
 const PageContent = mongoose.model('PageContent', pageContentSchema);
 const Worker = mongoose.model('Worker', workerSchema);
 
-let bucket = null;
-function initializeFirebase() {
-	if (admin.apps.length) return;
-	const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-	if (!serviceAccount || !process.env.FIREBASE_STORAGE_BUCKET) {
-		console.warn('Firebase Storage is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_STORAGE_BUCKET to enable uploads.');
-		return;
-	}
-	try {
-		admin.initializeApp({
-			credential: admin.credential.cert(JSON.parse(serviceAccount)),
-			storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-		});
-		bucket = admin.storage().bucket();
-	} catch (error) {
-		console.error('Firebase initialization failed:', error.message);
-	}
-}
+const cloudinaryConfigured = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+cloudinary.config({
+	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 function signUser(user) {
 	return jwt.sign({ id: user._id.toString(), email: user.email }, JWT_SECRET, { expiresIn: '7d' });
@@ -162,20 +150,32 @@ async function removeLegacyUserIndexes() {
 
 const upload = multer({
 	storage: multer.memoryStorage(),
-	limits: { fileSize: 500 * 1024 * 1024 },
+	limits: { fileSize: 32 * 1024 * 1024 },
 	fileFilter: (req, file, callback) => callback(null, /^(image|video|audio)\//.test(file.mimetype)),
 });
 
-const signedUrlExpiry = () => Date.now() + (10 * 365 * 24 * 60 * 60 * 1000);
-const saveStorageFile = async (file, userId, type, title = '') => {
-	const storagePath = `users/${userId}/${type}/${crypto.randomUUID()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-	const storageFile = bucket.file(storagePath);
-	await storageFile.save(file.buffer, { metadata: { contentType: file.mimetype, metadata: { uploadedBy: userId } } });
-	const [url] = await storageFile.getSignedUrl({ action: 'read', expires: signedUrlExpiry() });
-	return { storagePath, url, title };
+const cloudinaryResourceType = (type) => type === 'photo' ? 'image' : 'video';
+const uploadToCloudinary = (file, userId, type) => new Promise((resolve, reject) => {
+	const uploadStream = cloudinary.uploader.upload_stream({
+		folder: `compassion/users/${userId}/${type}`,
+		resource_type: cloudinaryResourceType(type),
+		use_filename: false,
+		unique_filename: true,
+	}, (error, result) => error ? reject(error) : resolve(result));
+	uploadStream.end(file.buffer);
+});
+
+const saveStorageFile = async (file, userId, type) => {
+	const result = await uploadToCloudinary(file, userId, type);
+	return { storagePath: result.public_id, storageResourceType: result.resource_type, url: result.secure_url };
 };
 
-app.get('/api/health', (req, res) => res.json({ ok: true, database: mongoose.connection.readyState === 1, firebaseStorage: Boolean(bucket) }));
+const deleteStorageFile = async (storagePath, storageResourceType) => {
+	if (!storagePath) return;
+	await cloudinary.uploader.destroy(storagePath, { resource_type: storageResourceType || 'image', invalidate: true });
+};
+
+app.get('/api/health', (req, res) => res.json({ ok: true, database: mongoose.connection.readyState === 1, cloudinary: cloudinaryConfigured }));
 
 app.post('/api/auth/login', databaseRequired, async (req, res, next) => {
 	try {
@@ -226,22 +226,22 @@ app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req
 
 app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([{ name: 'file', maxCount: 1 }, { name: 'backgroundImage', maxCount: 1 }]), async (req, res, next) => {
 	try {
-		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
+		if (!cloudinaryConfigured) return res.status(503).json({ message: 'Cloudinary is not configured' });
 		const mediaFile = req.files?.file?.[0];
 		const backgroundFile = req.files?.backgroundImage?.[0];
 		if (!mediaFile) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
 		const type = mediaFile.mimetype.startsWith('video/') ? 'video' : mediaFile.mimetype.startsWith('audio/') ? 'audio' : 'photo';
 		if (backgroundFile && type !== 'audio') return res.status(400).json({ message: 'Background images can only be added to audio.' });
 		if (backgroundFile && !backgroundFile.mimetype.startsWith('image/')) return res.status(400).json({ message: 'The audio background must be an image.' });
-		const savedMedia = await saveStorageFile(mediaFile, req.user.id, type, req.body.title || '');
+		const savedMedia = await saveStorageFile(mediaFile, req.user.id, type);
 		let backgroundImageUrl = '';
 		let backgroundImageMedia;
 		if (backgroundFile) {
-			const savedBackground = await saveStorageFile(backgroundFile, req.user.id, 'photo', req.body.title || '');
+			const savedBackground = await saveStorageFile(backgroundFile, req.user.id, 'photo');
 			backgroundImageUrl = savedBackground.url;
-			backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
+			backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, storageResourceType: savedBackground.storageResourceType, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
 		}
-		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id });
+		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, storageResourceType: savedMedia.storageResourceType, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id });
 		let video = null;
 		if (type === 'video') {
 			video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: savedMedia.url, videoTitle: req.body.title || mediaFile.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
@@ -263,16 +263,16 @@ app.put('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, ne
 });
 app.put('/api/media/:id/background', auth, adminOnly, databaseRequired, upload.single('backgroundImage'), async (req, res, next) => {
 	try {
-		if (!bucket) return res.status(503).json({ message: 'Firebase Storage is not configured' });
+		if (!cloudinaryConfigured) return res.status(503).json({ message: 'Cloudinary is not configured' });
 		const media = await Media.findOne({ _id: req.params.id, owner: req.user.id, type: 'audio' });
 		if (!media) return res.status(404).json({ message: 'Audio not found' });
 		if (!req.file || !req.file.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Choose an image background.' });
 		if (media.backgroundImageMedia) {
 			const oldBackground = await Media.findById(media.backgroundImageMedia);
-			if (oldBackground) { await bucket.file(oldBackground.storagePath).delete().catch(() => {}); await Media.deleteOne({ _id: oldBackground._id }); }
+			if (oldBackground) { await deleteStorageFile(oldBackground.storagePath, oldBackground.storageResourceType).catch(() => {}); await Media.deleteOne({ _id: oldBackground._id }); }
 		}
-		const savedBackground = await saveStorageFile(req.file, req.user.id, 'photo', media.title);
-		const background = await Media.create({ owner: req.user.id, type: 'photo', originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, storagePath: savedBackground.storagePath, url: savedBackground.url, title: media.title, description: 'Audio background image', isBackground: true });
+		const savedBackground = await saveStorageFile(req.file, req.user.id, 'photo');
+		const background = await Media.create({ owner: req.user.id, type: 'photo', originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, storagePath: savedBackground.storagePath, storageResourceType: savedBackground.storageResourceType, url: savedBackground.url, title: media.title, description: 'Audio background image', isBackground: true });
 		media.backgroundImageUrl = savedBackground.url;
 		media.backgroundImageMedia = background._id;
 		await media.save();
@@ -285,7 +285,7 @@ app.delete('/api/media/:id/background', auth, adminOnly, databaseRequired, async
 		if (!media) return res.status(404).json({ message: 'Audio not found' });
 		if (media.backgroundImageMedia) {
 			const background = await Media.findById(media.backgroundImageMedia);
-			if (background) { if (bucket) await bucket.file(background.storagePath).delete().catch(() => {}); await Media.deleteOne({ _id: background._id }); }
+			if (background) { await deleteStorageFile(background.storagePath, background.storageResourceType).catch(() => {}); await Media.deleteOne({ _id: background._id }); }
 		}
 		media.backgroundImageUrl = '';
 		media.backgroundImageMedia = undefined;
@@ -294,7 +294,7 @@ app.delete('/api/media/:id/background', auth, adminOnly, databaseRequired, async
 	} catch (error) { return next(error); }
 });
 app.delete('/api/media/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
-	try { const media = await Media.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!media) return res.status(404).json({ message: 'Media not found' }); await Video.deleteOne({ media: media._id, owner: req.user.id }); if (bucket) await bucket.file(media.storagePath).delete().catch(() => {}); return res.json({ message: 'Media deleted' }); } catch (error) { return next(error); }
+	try { const media = await Media.findOneAndDelete({ _id: req.params.id, owner: req.user.id }); if (!media) return res.status(404).json({ message: 'Media not found' }); await Video.deleteOne({ media: media._id, owner: req.user.id }); await deleteStorageFile(media.storagePath, media.storageResourceType).catch(() => {}); return res.json({ message: 'Media deleted' }); } catch (error) { return next(error); }
 });
 
 app.post('/api/videos', auth, adminOnly, databaseRequired, async (req, res, next) => { try { return res.status(201).json({ video: await Video.create({ ...req.body, owner: req.user.id }) }); } catch (error) { return next(error); } });
@@ -367,21 +367,33 @@ app.use((error, req, res, next) => {
 	if (error.name === 'ValidationError') return res.status(400).json({ message: error.message });
 	if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid resource id' });
 	console.error(error);
-	return res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Upload failed. Check Firebase Storage configuration.' : error.message || 'Internal server error' });
+	return res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Upload failed. Check Cloudinary configuration.' : error.message || 'Internal server error' });
 });
 
-async function start() {
-	initializeFirebase();
-	if (process.env.MONGODB_URI) {
-		mongoose.connect(process.env.MONGODB_URI).then(async () => {
+let databaseConnectionPromise;
+
+async function initialize() {
+	if (!process.env.MONGODB_URI) {
+		console.warn('MONGODB_URI is not configured. Database routes will return 503.');
+		return;
+	}
+	if (mongoose.connection.readyState === 1) return;
+	if (!databaseConnectionPromise) {
+		databaseConnectionPromise = mongoose.connect(process.env.MONGODB_URI).then(async () => {
 			console.log('MongoDB connected');
 			await removeLegacyUserIndexes();
-		}).catch((error) => console.error('MongoDB connection failed:', error.message));
-	} else {
-		console.warn('MONGODB_URI is not configured. Database routes will return 503.');
+		}).catch((error) => {
+			databaseConnectionPromise = null;
+			throw error;
+		});
 	}
+	await databaseConnectionPromise;
+}
+
+async function start() {
+	await initialize().catch((error) => console.error('MongoDB connection failed:', error.message));
 	return app.listen(PORT, () => console.log(`Videa API listening on port ${PORT}`));
 }
 
 if (require.main === module) start();
-module.exports = { app, start };
+module.exports = { app, initialize, start };

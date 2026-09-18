@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
     }
   }
 
-  return 'https://compassion-api.onrender.com/api';
+  return '/api';
 };
 
 const API_URL = getApiBaseUrl();
@@ -84,7 +84,7 @@ export const videoService = {
   delete: (id) => api.delete(`/videos/${id}`),
 };
 
-// Firebase Storage media services
+// Cloudinary-backed media services
 export const mediaService = {
   upload: (file, data = {}, onUploadProgress) => {
     const formData = new FormData();
