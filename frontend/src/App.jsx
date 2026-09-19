@@ -51,7 +51,7 @@ const AppLayout = () => {
       <main className={isAuthenticated ? (isAdmin ? 'pt-16 md:ml-64 md:pt-0' : 'pt-16') : 'pt-0'}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to={isAuthenticated ? '/home' : '/login'} replace />} />
+          <Route path="/" element={<Navigate to={isAuthenticated ? (isAdmin ? '/admin' : '/home') : '/login'} replace />} />
           <Route path="/home" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />

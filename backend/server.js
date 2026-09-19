@@ -60,6 +60,7 @@ const mediaSchema = new mongoose.Schema({
 	backgroundImageUrl: { type: String, default: '' },
 	backgroundImageMedia: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
 	isBackground: { type: Boolean, default: false },
+	isStaffPhoto: { type: Boolean, default: false },
 	title: { type: String, default: '' },
 	description: { type: String, default: '' },
 }, { timestamps: true });
@@ -197,7 +198,7 @@ app.get('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, 
 	try { return res.json({ users: await User.find().select('name email role createdAt isPremium').sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
 });
 app.get('/api/admin/media', auth, adminOnly, databaseRequired, async (req, res, next) => {
-	try { return res.json({ media: await Media.find().populate('owner', 'name email').sort({ createdAt: -1 }).limit(100) }); } catch (error) { return next(error); }
+	try { return res.json({ media: await Media.find({ isStaffPhoto: { $ne: true } }).populate('owner', 'name email').sort({ createdAt: -1 }).limit(100) }); } catch (error) { return next(error); }
 });
 app.post('/api/admin/users', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
@@ -241,7 +242,8 @@ app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([
 			backgroundImageUrl = savedBackground.url;
 			backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, storageResourceType: savedBackground.storageResourceType, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
 		}
-		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, storageResourceType: savedMedia.storageResourceType, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id });
+		const isStaffPhoto = req.body.isStaffPhoto === 'true' || req.body.isStaffPhoto === true;
+		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, storageResourceType: savedMedia.storageResourceType, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id, isStaffPhoto });
 		let video = null;
 		if (type === 'video') {
 			video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: savedMedia.url, videoTitle: req.body.title || mediaFile.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
@@ -253,7 +255,7 @@ app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([
 });
 
 app.get('/api/media', auth, databaseRequired, async (req, res, next) => {
-	try { return res.json({ media: await Media.find({ isBackground: { $ne: true } }).sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
+	try { return res.json({ media: await Media.find({ isBackground: { $ne: true }, isStaffPhoto: { $ne: true } }).sort({ createdAt: -1 }) }); } catch (error) { return next(error); }
 });
 app.get('/api/media/:id', auth, databaseRequired, async (req, res, next) => {
 	try { const media = await Media.findById(req.params.id); if (!media) return res.status(404).json({ message: 'Media not found' }); return res.json({ media }); } catch (error) { return next(error); }
@@ -340,7 +342,7 @@ app.get('/api/workers', auth, databaseRequired, async (req, res, next) => {
 app.post('/api/workers', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
 		const name = req.body.name?.trim();
-		if (!name) return res.status(400).json({ message: 'Worker name is required' });
+		if (!name) return res.status(400).json({ message: 'Staff name is required' });
 		const worker = await Worker.create({ name, role: req.body.role || '', details: req.body.details || '', photoUrl: req.body.photoUrl || '', photoMedia: req.body.photoMedia || undefined, owner: req.user.id });
 		return res.status(201).json({ worker });
 	} catch (error) { return next(error); }
@@ -348,15 +350,15 @@ app.post('/api/workers', auth, adminOnly, databaseRequired, async (req, res, nex
 app.put('/api/workers/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
 		const worker = await Worker.findByIdAndUpdate(req.params.id, { $set: { name: req.body.name, role: req.body.role || '', details: req.body.details || '', photoUrl: req.body.photoUrl || '', photoMedia: req.body.photoMedia || undefined } }, { new: true, runValidators: true });
-		if (!worker) return res.status(404).json({ message: 'Worker not found' });
+		if (!worker) return res.status(404).json({ message: 'Staff member not found' });
 		return res.json({ worker });
 	} catch (error) { return next(error); }
 });
 app.delete('/api/workers/:id', auth, adminOnly, databaseRequired, async (req, res, next) => {
 	try {
 		const worker = await Worker.findByIdAndDelete(req.params.id);
-		if (!worker) return res.status(404).json({ message: 'Worker not found' });
-		return res.json({ message: 'Worker deleted' });
+		if (!worker) return res.status(404).json({ message: 'Staff member not found' });
+		return res.json({ message: 'Staff deleted' });
 	} catch (error) { return next(error); }
 });
 

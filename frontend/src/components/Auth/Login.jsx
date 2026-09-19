@@ -14,10 +14,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const result = await login(email, password);
     if (result.success) {
-      navigate('/');
+      const destination = result.user?.role === 'admin' ? '/admin' : '/home';
+      navigate(destination, { replace: true });
     }
     setLoading(false);
   };
