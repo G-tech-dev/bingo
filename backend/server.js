@@ -151,7 +151,7 @@ async function removeLegacyUserIndexes() {
 
 const upload = multer({
 	storage: multer.memoryStorage(),
-	limits: { fileSize: 32 * 1024 * 1024 },
+	limits: { fileSize: 200 * 1024 * 1024 },
 	fileFilter: (req, file, callback) => callback(null, /^(image|video|audio)\//.test(file.mimetype)),
 });
 
