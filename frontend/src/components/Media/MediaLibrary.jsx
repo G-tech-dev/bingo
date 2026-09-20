@@ -2,11 +2,28 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { FaEdit, FaImage, FaMicrophone, FaPause, FaPlay, FaPlus, FaTrash, FaVideo } from 'react-icons/fa';
+import { FaDownload, FaEdit, FaImage, FaMicrophone, FaPause, FaPlay, FaPlus, FaTrash, FaVideo } from 'react-icons/fa';
 import Loader from '../Common/Loader';
 import toast from 'react-hot-toast';
 
 const formatDuration = (seconds) => `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
+
+const downloadFile = (url, title) => {
+  if (!url) {
+    toast.error('Download is not available for this item.');
+    return;
+  }
+
+  const safeTitle = (title || 'content').replace(/[\\/:*?"<>|\r\n]+/g, '').trim() || 'content';
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = safeTitle;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
 
 const AudioMediaPlayer = ({ url }) => {
   const audioRef = useRef(null);

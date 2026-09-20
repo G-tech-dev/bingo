@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { videoService } from '../../services/api';
-import { FaEye, FaClock, FaFire, FaShareAlt, FaVideo, FaMoneyBillWave, FaFilm, FaSearch } from 'react-icons/fa';
+import { FaEye, FaClock, FaFire, FaShareAlt, FaVideo, FaMoneyBillWave, FaFilm, FaSearch, FaDownload } from 'react-icons/fa';
 import Loader from '../Common/Loader';
 import toast from 'react-hot-toast';
+
+const downloadFile = (url, title) => {
+  if (!url) {
+    toast.error('Download is not available for this video.');
+    return;
+  }
+
+  const safeTitle = (title || 'video').replace(/[\\/:*?"<>|\r\n]+/g, '').trim() || 'video';
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = safeTitle;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
 
 const VideoList = () => {
   const [videos, setVideos] = useState([]);
@@ -190,15 +207,30 @@ const VideoList = () => {
                       {video.videoTitle}
                     </h3>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={(event) => shareVideo(event, video)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-dark-200 text-dark-500 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600"
-                    title="Share video link"
-                    aria-label={`Share ${video.videoTitle}`}
-                  >
-                    <FaShareAlt className="text-sm" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        downloadFile(video.mediaUrl || video.thumbnailUrl, video.videoTitle);
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-dark-200 text-dark-500 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600"
+                      title="Download video"
+                      aria-label={`Download ${video.videoTitle}`}
+                    >
+                      <FaDownload className="text-sm" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => shareVideo(event, video)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-dark-200 text-dark-500 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600"
+                      title="Share video link"
+                      aria-label={`Share ${video.videoTitle}`}
+                    >
+                      <FaShareAlt className="text-sm" />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="mt-3 flex items-center gap-3 font-mono text-xs text-dark-500">
