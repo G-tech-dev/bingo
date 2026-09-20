@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaPlus, FaShareAlt, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { pageService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../Common/Loader';
+import shareContent from '../../utils/shareContent';
 
 const emptyForm = { title: '', body: '' };
 
@@ -78,6 +79,12 @@ const ManagedPage = ({ section, eyebrow, heading, intro, emptyTitle, emptyText, 
     }
   };
 
+  const shareItem = (item) => shareContent({
+    title: item.title,
+    text: item.body || item.title,
+    url: `${window.location.origin}${window.location.pathname}#${item._id}`,
+  });
+
   if (loading) return <Loader />;
 
   return (
@@ -121,12 +128,15 @@ const ManagedPage = ({ section, eyebrow, heading, intro, emptyTitle, emptyText, 
               {Icon && <Icon className="text-2xl text-primary-600" />}
               <div className="mt-4 flex items-start justify-between gap-3">
                 <h2 className="text-xl font-bold text-dark-900">{item.title}</h2>
-                {isAdmin && (
-                  <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={() => shareItem(item)} className="text-dark-500 hover:text-primary-600" title="Share content" aria-label={`Share ${item.title}`}><FaShareAlt /></button>
+                  {isAdmin && (
                     <button type="button" onClick={() => beginEdit(item)} className="text-dark-500 hover:text-primary-600" title="Edit content"><FaEdit /></button>
+                  )}
+                  {isAdmin && (
                     <button type="button" onClick={() => deleteItem(item._id)} className="text-dark-500 hover:text-red-600" title="Delete content"><FaTrash /></button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
               {item.body && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-dark-600">{item.body}</p>}
             </article>
