@@ -44,6 +44,14 @@ const Navbar = () => {
         </aside>
         <div className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-dark-200 bg-white px-4 md:hidden"><Link to="/admin" className="flex items-center gap-2 font-bold text-primary-700" aria-label="RW0448"><FaHandsHelping />RW0448 Admin</Link><button type="button" onClick={() => setIsMenuOpen((current) => !current)} className="rounded-lg p-2 text-dark-700" aria-label="Open admin navigation">{isMenuOpen ? <FaTimes /> : <FaBars />}</button></div>
         {isMenuOpen && <nav className="fixed inset-x-0 top-16 z-40 border-b border-dark-200 bg-white p-4 shadow-lg md:hidden" aria-label="Mobile admin navigation">{adminMenu.map(({ to, label, icon: Icon }) => <Link key={to} to={to} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-dark-700 hover:bg-primary-50"><Icon />{label}</Link>)}<button type="button" onClick={handleLogout} className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-red-600"><FaSignOutAlt /> Sign out</button></nav>}
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-dark-700 bg-dark-900 text-white shadow-[0_-4px_18px_rgba(15,23,42,0.2)] backdrop-blur-sm md:hidden" aria-label="Mobile admin bottom navigation">
+          <div className="mx-auto grid max-w-md grid-cols-5 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2">
+            {adminMenu.slice(0, 5).map(({ to, label, icon: Icon }) => {
+              const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
+              return <Link key={to} to={to} className={`flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[0.6rem] font-semibold ${active ? 'bg-primary-600 text-white' : 'text-dark-300'}`}><Icon className="text-base" /><span>{label.replace(' content', '').replace(' overview', '')}</span></Link>;
+            })}
+          </div>
+        </nav>
       </>
     );
   }

@@ -47,7 +47,7 @@ const AppLayout = () => {
         }}
       />
       <Navbar />
-      <main className={isAuthenticated ? (isAdmin ? 'pt-16 md:ml-64 md:pt-0' : 'pt-16 pb-20 lg:pb-0') : 'pt-0'}>
+      <main className={isAuthenticated ? (isAdmin ? 'pb-20 pt-16 md:ml-64 md:pb-0 md:pt-0' : 'pb-20 pt-16 lg:pb-0') : 'pt-0'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to={isAuthenticated ? (isAdmin ? '/admin' : '/home') : '/login'} replace />} />
