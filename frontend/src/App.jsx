@@ -8,7 +8,6 @@ import VideoList from './components/Videos/VideoList';
 import VideoPlayer from './components/Videos/VideoPlayer';
 import UploadVideo from './components/Videos/UploadVideo';
 import MediaLibrary from './components/Media/MediaLibrary';
-import Dashboard from './components/Dashboard/Dashboard';
 import Loader from './components/Common/Loader';
 import AdminUsers from './components/Admin/AdminUsers';
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -52,7 +51,7 @@ const AppLayout = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to={isAuthenticated ? (isAdmin ? '/admin' : '/home') : '/login'} replace />} />
-          <Route path="/home" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/home" element={<PrivateRoute><MediaLibrary /></PrivateRoute>} />
           <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           <Route path="/videos" element={<PrivateRoute><VideoList /></PrivateRoute>} />
           <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
