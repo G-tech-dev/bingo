@@ -86,9 +86,12 @@ export const videoService = {
 
 // Cloudinary-backed media services
 export const mediaService = {
-  upload: (file, data = {}, onUploadProgress) => {
+  upload: (fileOrFiles, data = {}, onUploadProgress) => {
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => {
+      if (file) formData.append('file', file);
+    });
     Object.entries(data).forEach(([key, value]) => {
       if (value instanceof File) formData.append(key, value);
       else formData.append(key, value ?? '');

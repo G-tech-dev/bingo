@@ -225,32 +225,40 @@ app.delete('/api/admin/users/:id', auth, adminOnly, databaseRequired, async (req
 	try { const user = await User.findOne({ _id: req.params.id, role: { $ne: 'admin' } }); if (!user) return res.status(404).json({ message: 'User not found or cannot be removed' }); await User.deleteOne({ _id: user._id }); await Media.deleteMany({ owner: user._id }); await Video.deleteMany({ owner: user._id }); return res.json({ message: 'User removed' }); } catch (error) { return next(error); }
 });
 
-app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([{ name: 'file', maxCount: 1 }, { name: 'backgroundImage', maxCount: 1 }]), async (req, res, next) => {
+app.post('/api/media/upload', auth, adminOnly, databaseRequired, upload.fields([{ name: 'file', maxCount: 20 }, { name: 'backgroundImage', maxCount: 1 }]), async (req, res, next) => {
 	try {
 		if (!cloudinaryConfigured) return res.status(503).json({ message: 'Cloudinary is not configured' });
-		const mediaFile = req.files?.file?.[0];
+		const mediaFiles = req.files?.file || [];
 		const backgroundFile = req.files?.backgroundImage?.[0];
-		if (!mediaFile) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
-		const type = mediaFile.mimetype.startsWith('video/') ? 'video' : mediaFile.mimetype.startsWith('audio/') ? 'audio' : 'photo';
-		if (backgroundFile && type !== 'audio') return res.status(400).json({ message: 'Background images can only be added to audio.' });
+		if (!mediaFiles.length) return res.status(400).json({ message: 'Send an image, video, or audio file in the file field' });
+		if (backgroundFile && mediaFiles.length > 1) return res.status(400).json({ message: 'Background images can only be added to a single audio upload.' });
 		if (backgroundFile && !backgroundFile.mimetype.startsWith('image/')) return res.status(400).json({ message: 'The audio background must be an image.' });
-		const savedMedia = await saveStorageFile(mediaFile, req.user.id, type);
-		let backgroundImageUrl = '';
-		let backgroundImageMedia;
-		if (backgroundFile) {
-			const savedBackground = await saveStorageFile(backgroundFile, req.user.id, 'photo');
-			backgroundImageUrl = savedBackground.url;
-			backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, storageResourceType: savedBackground.storageResourceType, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
-		}
 		const isStaffPhoto = req.body.isStaffPhoto === 'true' || req.body.isStaffPhoto === true;
-		const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, storageResourceType: savedMedia.storageResourceType, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id, isStaffPhoto });
-		let video = null;
-		if (type === 'video') {
-			video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: savedMedia.url, videoTitle: req.body.title || mediaFile.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
-			media.videoId = video._id;
-			await media.save();
+		const uploadedMedia = [];
+		for (const mediaFile of mediaFiles) {
+			const type = mediaFile.mimetype.startsWith('video/') ? 'video' : mediaFile.mimetype.startsWith('audio/') ? 'audio' : 'photo';
+			if (backgroundFile && type !== 'audio') return res.status(400).json({ message: 'Background images can only be added to audio.' });
+			const savedMedia = await saveStorageFile(mediaFile, req.user.id, type);
+			let backgroundImageUrl = '';
+			let backgroundImageMedia;
+			if (backgroundFile) {
+				const savedBackground = await saveStorageFile(backgroundFile, req.user.id, 'photo');
+				backgroundImageUrl = savedBackground.url;
+				backgroundImageMedia = await Media.create({ owner: req.user.id, type: 'photo', originalName: backgroundFile.originalname, mimeType: backgroundFile.mimetype, size: backgroundFile.size, storagePath: savedBackground.storagePath, storageResourceType: savedBackground.storageResourceType, url: backgroundImageUrl, title: req.body.title || '', description: 'Audio background image', isBackground: true });
+			}
+			const media = await Media.create({ owner: req.user.id, type, originalName: mediaFile.originalname, mimeType: mediaFile.mimetype, size: mediaFile.size, storagePath: savedMedia.storagePath, storageResourceType: savedMedia.storageResourceType, url: savedMedia.url, title: req.body.title || '', description: req.body.description || '', backgroundImageUrl, backgroundImageMedia: backgroundImageMedia?._id, isStaffPhoto });
+			let video = null;
+			if (type === 'video') {
+				video = await Video.create({ owner: req.user.id, media: media._id, mediaType: type, mediaUrl: savedMedia.url, videoTitle: req.body.title || mediaFile.originalname, videoDescription: req.body.description || '', category: req.body.category || 'other' });
+				media.videoId = video._id;
+				await media.save();
+			}
+			uploadedMedia.push({ media, video });
 		}
-		return res.status(201).json({ media, video });
+		if (uploadedMedia.length === 1) {
+			return res.status(201).json({ media: uploadedMedia[0].media, video: uploadedMedia[0].video });
+		}
+		return res.status(201).json({ media: uploadedMedia.map((entry) => entry.media), videos: uploadedMedia.map((entry) => entry.video).filter(Boolean), count: uploadedMedia.length });
 	} catch (error) { return next(error); }
 });
 

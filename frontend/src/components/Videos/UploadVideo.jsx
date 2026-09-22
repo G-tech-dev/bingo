@@ -9,6 +9,7 @@ const UploadVideo = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [contentType, setContentType] = useState('video');
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ const UploadVideo = () => {
   const handleTypeChange = (type) => {
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
     setContentType(type);
+    setSelectedFiles([]);
     setSelectedFile(null);
     setProgress(0);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -68,39 +70,53 @@ const UploadVideo = () => {
   const stopRecording = () => recorderRef.current?.stop();
 
   const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
+      setSelectedFiles([]);
+      setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl('');
+      }
+      return;
+    }
     const maxSize = contentType === 'video' ? 200 * 1024 * 1024 : 500 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error(`Files must be smaller than ${Math.round(maxSize / (1024 * 1024))}MB for ${contentType} uploads.`);
-      return;
-    }
     const expectedMimeType = contentType === 'photo' ? 'image' : contentType;
-    if (!file.type.startsWith(`${expectedMimeType}/`)) {
-      toast.error(`Choose a ${contentType} file.`);
-      return;
+    const validFiles = files.filter((file) => file.size <= maxSize && file.type.startsWith(`${expectedMimeType}/`));
+
+    if (validFiles.length !== files.length) {
+      toast.error(`Choose only valid ${contentType} files smaller than ${Math.round(maxSize / (1024 * 1024))}MB.`);
     }
+
+    if (!validFiles.length) return;
+
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setSelectedFiles(validFiles);
+    setSelectedFile(validFiles[0]);
+    setPreviewUrl(URL.createObjectURL(validFiles[0]));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!selectedFile) {
+    if (!selectedFiles.length) {
       toast.error(`Choose a ${contentType} file first.`);
       return;
     }
     setLoading(true);
     setProgress(0);
     try {
-      await mediaService.upload(selectedFile, {
-        title: formData.title,
-        description: formData.description,
-      }, (uploadEvent) => {
-        if (uploadEvent.total) setProgress(Math.round((uploadEvent.loaded * 100) / uploadEvent.total));
-      });
-      toast.success(`${contentType.charAt(0).toUpperCase() + contentType.slice(1)} uploaded successfully.`);
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        await mediaService.upload(selectedFiles[index], {
+          title: formData.title,
+          description: formData.description,
+        }, (uploadEvent) => {
+          if (uploadEvent.total) {
+            const fileProgress = Math.round((uploadEvent.loaded * 100) / uploadEvent.total);
+            setProgress(Math.round((((index + 1) / selectedFiles.length) * 100) - ((1 / selectedFiles.length) * (100 - fileProgress))));
+          }
+        });
+      }
+      toast.success(`${selectedFiles.length} ${contentType.charAt(0).toUpperCase() + contentType.slice(1)} file${selectedFiles.length > 1 ? 's' : ''} uploaded successfully.`);
       navigate(contentType === 'video' ? '/videos' : '/media');
     } catch (error) {
       console.error('Content upload error:', error);
@@ -124,7 +140,21 @@ const UploadVideo = () => {
           </div>
           <div><label className="mb-1 block text-sm font-medium text-dark-700">Title *</label><input name="title" value={formData.title} onChange={handleChange} required maxLength="200" className="input-field" placeholder={`Enter ${contentType} title`} /></div>
           <div><label className="mb-1 block text-sm font-medium text-dark-700">Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows="4" className="input-field" placeholder="Describe your content" /></div>
-          <div><label className="mb-1 block text-sm font-medium text-dark-700">{contentType.charAt(0).toUpperCase() + contentType.slice(1)} file *</label><input type="file" accept={`${contentType === 'photo' ? 'image' : contentType}/*`} onChange={handleFileChange} required={!selectedFile} disabled={recording} className="input-field" /><p className="mt-1 text-xs text-dark-400">{contentType === 'video' ? 'Maximum file size: 200MB. Large videos may take longer because Cloudinary processes them.' : 'Maximum file size: 500MB'}</p>{contentType === 'audio' && <div className="mt-3 flex items-center gap-3"><button type="button" onClick={recording ? stopRecording : startRecording} disabled={loading} className="secondary-button px-4 py-2 text-sm">{recording ? 'Stop recording' : 'Record audio'}</button>{recording && <span className="text-sm text-red-600">Recording...</span>}</div>}{previewUrl && (contentType === 'photo' ? <img src={previewUrl} alt="Selected content preview" className="mt-3 max-h-64 rounded-lg object-contain" /> : <div className="mt-3 rounded-lg bg-dark-50 p-4"><audio src={previewUrl} controls={contentType === 'audio'} className="w-full" />{contentType === 'video' && <video src={previewUrl} controls className="max-h-64 w-full rounded-lg" />}</div>)}</div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-dark-700">{contentType.charAt(0).toUpperCase() + contentType.slice(1)} file{selectedFiles.length > 1 ? 's' : ''} *</label>
+            <input type="file" accept={contentType === 'photo' ? 'image/*' : `${contentType}/*`} multiple onChange={handleFileChange} required={!selectedFiles.length} disabled={recording} className="input-field" />
+            <p className="mt-1 text-xs text-dark-400">{contentType === 'video' ? 'Maximum file size: 200MB per file. Large videos may take longer because Cloudinary processes them.' : 'Maximum file size: 500MB per file'}</p>
+            {selectedFiles.length > 0 && (
+              <div className="mt-3 rounded-lg border border-dark-200 bg-dark-50 p-3 text-sm text-dark-700">
+                <p className="font-medium">Selected files:</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name}</li>)}
+                </ul>
+              </div>
+            )}
+            {contentType === 'audio' && <div className="mt-3 flex items-center gap-3"><button type="button" onClick={recording ? stopRecording : startRecording} disabled={loading} className="secondary-button px-4 py-2 text-sm">{recording ? 'Stop recording' : 'Record audio'}</button>{recording && <span className="text-sm text-red-600">Recording...</span>}</div>}
+            {previewUrl && (contentType === 'photo' ? <img src={previewUrl} alt="Selected content preview" className="mt-3 max-h-64 rounded-lg object-contain" /> : <div className="mt-3 rounded-lg bg-dark-50 p-4"><audio src={previewUrl} controls={contentType === 'audio'} className="w-full" />{contentType === 'video' && <video src={previewUrl} controls className="max-h-64 w-full rounded-lg" />}</div>)}
+          </div>
           <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700"><FaInfoCircle className="mt-0.5 shrink-0" /><p>Content is stored securely in Cloudinary. Large videos may take longer to process and publish, but they are still being uploaded in the background.</p></div>
           <button type="submit" disabled={loading} className="btn-primary flex w-full items-center justify-center gap-2 py-3 disabled:cursor-not-allowed disabled:opacity-50">{loading ? <><FaSpinner className="animate-spin" /> Uploading {progress ? `${progress}%` : ''}</> : <><FaUpload /> Upload {contentType}</>}</button>
         </form>
